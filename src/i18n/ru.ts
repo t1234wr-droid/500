@@ -27,6 +27,10 @@ export const ru = {
   apartments: {
     search: 'Поиск по коду',
     cleanedToday: 'Убрано сегодня',
+    typeAll: 'Все типы',
+    typeStudio: 'Студии',
+    type1br: '1 спальня',
+    type2br: '2 спальни',
     norms: 'Нормы',
     comments: 'Комментарии',
     reportBreakdown: 'Сообщить о поломке',
@@ -125,6 +129,7 @@ export const ru = {
       all: 'Все',
       assets: 'Инвентарь',
       consumables: 'Расходники',
+      allCategories: 'Все категории',
       balance: 'Остаток',
       min: 'Мин.',
       history: 'История',

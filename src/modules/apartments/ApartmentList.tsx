@@ -2,15 +2,26 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchApartments } from '@/modules/apartments/api'
 import { getPendingOutbox } from '@/lib/outbox'
-import type { SvApartment } from '@/lib/database.types'
+import type { SvApartment, AptType } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { isToday } from '@/lib/format'
 import { Search, CheckCircle2, ChevronRight } from 'lucide-react'
+
+const typeOrder: AptType[] = ['studio', '1br', '2br']
+
+const typeLabels: Record<AptType, string> = {
+  studio: ru.apartments.typeStudio,
+  '1br': ru.apartments.type1br,
+  '2br': ru.apartments.type2br,
+}
+
+type TypeFilter = 'all' | AptType
 
 export function ApartmentList() {
   const navigate = useNavigate()
   const [apartments, setApartments] = useState<SvApartment[]>([])
   const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [loading, setLoading] = useState(true)
   const [pendingCount, setPendingCount] = useState(0)
 
@@ -23,28 +34,44 @@ export function ApartmentList() {
   }, [])
 
   const grouped = useMemo(() => {
-    const filtered = apartments.filter((a) =>
-      a.code.toLowerCase().includes(search.toLowerCase().trim()),
-    )
-    const map = new Map<string, SvApartment[]>()
+    const filtered = apartments.filter((a) => {
+      if (typeFilter !== 'all' && a.type !== typeFilter) return false
+      if (search.trim() && !a.code.toLowerCase().includes(search.toLowerCase().trim())) return false
+      return true
+    })
+    const map = new Map<AptType, SvApartment[]>()
     for (const a of filtered) {
-      const list = map.get(a.building) ?? []
+      const list = map.get(a.type) ?? []
       list.push(a)
-      map.set(a.building, list)
+      map.set(a.type, list)
     }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [apartments, search])
+    return typeOrder
+      .filter((t) => map.has(t))
+      .map((t) => [t, map.get(t)!] as const)
+  }, [apartments, search, typeFilter])
 
   return (
     <div className="px-4 pt-6">
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={ru.apartments.search}
-          className="w-full bg-surface rounded-xl pl-10 pr-4 py-2.5 text-sm border border-line focus:border-accent focus:outline-none"
-        />
+      <div className="flex gap-2.5 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={ru.apartments.search}
+            className="w-full bg-surface rounded-xl pl-10 pr-4 py-2.5 text-sm border border-line focus:border-accent focus:outline-none"
+          />
+        </div>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+          className="bg-surface rounded-xl px-3 py-2.5 text-sm border border-line focus:border-accent focus:outline-none"
+        >
+          <option value="all">{ru.apartments.typeAll}</option>
+          {typeOrder.map((t) => (
+            <option key={t} value={t}>{typeLabels[t]}</option>
+          ))}
+        </select>
       </div>
 
       {pendingCount > 0 && (
@@ -57,10 +84,10 @@ export function ApartmentList() {
         <p className="text-center text-muted mt-8">{ru.app.loading}</p>
       ) : (
         <div className="space-y-6">
-          {grouped.map(([building, apts]) => (
-            <div key={building}>
+          {grouped.map(([type, apts]) => (
+            <div key={type}>
               <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-1">
-                {building}
+                {typeLabels[type]}
               </h2>
               <div className="space-y-2">
                 {apts.map((apt) => {
@@ -73,6 +100,7 @@ export function ApartmentList() {
                     >
                       <div className="flex items-center gap-3">
                         <span className="font-medium text-ink">{apt.code}</span>
+                        <span className="text-xs text-muted">{apt.building}</span>
                         {cleaned && (
                           <span className="flex items-center gap-1 text-xs text-ok bg-ok-soft px-2 py-0.5 rounded-full">
                             <CheckCircle2 className="w-3 h-3" />

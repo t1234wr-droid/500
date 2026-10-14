@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchApartmentsAdmin, fetchApartmentGaps, fetchBuildings } from '@/modules/admin/api'
-import type { Apartment, Building, ApartmentGapRow } from '@/lib/database.types'
+import type { Apartment, Building, ApartmentGapRow, AptType } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { Search } from 'lucide-react'
 
@@ -19,12 +19,23 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
   )
 }
 
+const typeOrder: AptType[] = ['studio', '1br', '2br']
+
+const typeLabels: Record<AptType, string> = {
+  studio: ru.apartments.typeStudio,
+  '1br': ru.apartments.type1br,
+  '2br': ru.apartments.type2br,
+}
+
+type TypeFilter = 'all' | AptType
+
 export function AdminApartmentList() {
   const navigate = useNavigate()
   const [apartments, setApartments] = useState<Apartment[]>([])
   const [buildings, setBuildings] = useState<Building[]>([])
   const [gaps, setGaps] = useState<ApartmentGapRow[]>([])
   const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<TypeFilter>('all')
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -55,18 +66,21 @@ export function AdminApartmentList() {
   }, [gaps])
 
   const grouped = useMemo(() => {
-    const filtered = apartments.filter((a) =>
-      a.code.toLowerCase().includes(search.toLowerCase().trim()),
-    )
-    const map = new Map<string, Apartment[]>()
+    const filtered = apartments.filter((a) => {
+      if (typeFilter !== 'all' && a.type !== typeFilter) return false
+      if (search.trim() && !a.code.toLowerCase().includes(search.toLowerCase().trim())) return false
+      return true
+    })
+    const map = new Map<AptType, Apartment[]>()
     for (const a of filtered) {
-      const bName = buildingMap.get(a.building_id) ?? '?'
-      const list = map.get(bName) ?? []
+      const list = map.get(a.type) ?? []
       list.push(a)
-      map.set(bName, list)
+      map.set(a.type, list)
     }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [apartments, search, buildingMap])
+    return typeOrder
+      .filter((t) => map.has(t))
+      .map((t) => [t, map.get(t)!] as const)
+  }, [apartments, search, typeFilter])
 
   if (loading) {
     return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
@@ -76,19 +90,31 @@ export function AdminApartmentList() {
     <div className="px-4 pt-5 pb-28 lg:px-0 lg:pt-0">
       <h1 className="text-xl font-semibold text-ink mb-4">{ru.admin.apartments.title}</h1>
 
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={ru.apartments.search}
-          className="w-full bg-surface rounded-lg pl-10 pr-4 py-2 text-sm border border-line focus:border-accent focus:outline-none"
-        />
+      <div className="flex gap-2.5 mb-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={ru.apartments.search}
+            className="w-full bg-surface rounded-lg pl-10 pr-4 py-2 text-sm border border-line focus:border-accent focus:outline-none"
+          />
+        </div>
+        <select
+          value={typeFilter}
+          onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
+          className="bg-surface rounded-lg px-3 py-2 text-sm border border-line focus:border-accent focus:outline-none"
+        >
+          <option value="all">{ru.apartments.typeAll}</option>
+          {typeOrder.map((t) => (
+            <option key={t} value={t}>{typeLabels[t]}</option>
+          ))}
+        </select>
       </div>
 
-      {grouped.map(([building, apts]) => (
-        <div key={building} className="mb-5">
-          <h2 className="font-semibold text-sm text-ink mb-2 px-1">{building}</h2>
+      {grouped.map(([type, apts]) => (
+        <div key={type} className="mb-5">
+          <h2 className="font-semibold text-sm text-ink mb-2 px-1">{typeLabels[type]}</h2>
           <div className="grid grid-cols-[repeat(auto-fill,minmax(118px,1fr))] gap-2.5">
             {apts.map((apt) => {
               const total = gapApartments.totalNorms.get(apt.id) ?? 0
@@ -102,7 +128,7 @@ export function AdminApartmentList() {
                   className="text-left bg-surface border border-line rounded-lg px-3 py-2.5 transition-colors hover:border-accent"
                 >
                   <b className="text-base text-ink">{apt.code}</b>
-                  <div className="text-muted text-xs">{apt.type}</div>
+                  <div className="text-muted text-xs">{buildingMap.get(apt.building_id) ?? '?'}</div>
                   <ProgressBar value={p} color={pctColor(p)} />
                   <div className="text-muted text-xs mt-1">
                     {missingQty > 0 ? `${ru.admin.dashboard.gap} ${missingQty}` : 'полная'}
@@ -113,6 +139,9 @@ export function AdminApartmentList() {
           </div>
         </div>
       ))}
+      {grouped.length === 0 && (
+        <div className="px-4 py-6 text-center text-muted text-sm">Ничего не найдено</div>
+      )}
     </div>
   )
 }

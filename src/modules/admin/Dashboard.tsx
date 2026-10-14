@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchToOrder, fetchApartmentGaps, fetchShortageEvents, fetchApartmentsAdmin, fetchBuildings } from '@/modules/admin/api'
-import type { ToOrderRow, ApartmentGapRow, EventRow, Apartment, Building } from '@/lib/database.types'
+import type { ToOrderRow, ApartmentGapRow, EventRow, Apartment, Building, AptType } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { formatQty } from '@/lib/format'
 import { AlertTriangle, TrendingDown, PackageX } from 'lucide-react'
@@ -58,16 +58,21 @@ export function Dashboard() {
     return map
   }, [gaps])
 
-  const apartmentsByBuilding = useMemo(() => {
-    const map = new Map<string, Apartment[]>()
-    for (const a of apartments) {
-      const bName = buildingMap.get(a.building_id) ?? '?'
-      const list = map.get(bName) ?? []
-      list.push(a)
-      map.set(bName, list)
+  const apartmentsByType = useMemo(() => {
+    const typeOrder: AptType[] = ['studio', '1br', '2br']
+    const typeLabels: Record<AptType, string> = {
+      studio: ru.apartments.typeStudio,
+      '1br': ru.apartments.type1br,
+      '2br': ru.apartments.type2br,
     }
-    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
-  }, [apartments, buildingMap])
+    const map = new Map<AptType, Apartment[]>()
+    for (const a of apartments) {
+      const list = map.get(a.type) ?? []
+      list.push(a)
+      map.set(a.type, list)
+    }
+    return typeOrder.filter((t) => map.has(t)).map((t) => [typeLabels[t], map.get(t)!] as const)
+  }, [apartments])
 
   if (loading) {
     return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
@@ -136,15 +141,15 @@ export function Dashboard() {
           )}
         </section>
 
-        {/* Right: apartment tiles by building */}
+        {/* Right: apartment tiles by type */}
         <section className="bg-surface border border-line rounded-xl p-4">
           <h2 className="text-base font-semibold text-ink mb-3 flex items-center gap-2">
             <PackageX className="w-4 h-4 text-warn" />
             {ru.admin.apartments.completeness}
           </h2>
-          {apartmentsByBuilding.map(([building, apts]) => (
-            <div key={building}>
-              <div className="font-semibold text-sm text-ink mt-4 mb-2 first:mt-0">{building}</div>
+          {apartmentsByType.map(([typeLabel, apts]) => (
+            <div key={typeLabel}>
+              <div className="font-semibold text-sm text-ink mt-4 mb-2 first:mt-0">{typeLabel}</div>
               <div className="grid grid-cols-[repeat(auto-fill,minmax(118px,1fr))] gap-2.5">
                 {apts.map((apt) => {
                   const gapData = gapApartments.get(apt.id)
@@ -159,7 +164,7 @@ export function Dashboard() {
                       className="text-left bg-surface border border-line rounded-lg px-3 py-2.5 transition-colors hover:border-accent"
                     >
                       <b className="text-base text-ink">{apt.code}</b>
-                      <div className="text-muted text-xs">{apt.type}</div>
+                      <div className="text-muted text-xs">{buildingMap.get(apt.building_id) ?? '?'}</div>
                       <ProgressBar value={p} color={pctColor(p)} className="mt-1.5" />
                       <div className="text-muted text-xs mt-1">
                         {missingQty > 0 ? `${ru.admin.dashboard.gap} ${missingQty}` : 'полная'}

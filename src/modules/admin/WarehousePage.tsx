@@ -3,9 +3,9 @@ import { fetchWarehouseStock, fetchStockMoves } from '@/modules/admin/api'
 import type { WarehouseStockRow, StockMoveRow } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { formatQty, formatDateTime } from '@/lib/format'
-import { Search, ChevronDown, ChevronUp } from 'lucide-react'
+import { Search } from 'lucide-react'
 
-type Filter = 'all' | 'assets' | 'consumables'
+type KindFilter = 'all' | 'assets' | 'consumables'
 
 function ProgressBar({ value, color }: { value: number; color: string }) {
   return (
@@ -18,7 +18,8 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
 export function WarehousePage() {
   const [stock, setStock] = useState<WarehouseStockRow[]>([])
   const [search, setSearch] = useState('')
-  const [filter, setFilter] = useState<Filter>('all')
+  const [kindFilter, setKindFilter] = useState<KindFilter>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
   const [loading, setLoading] = useState(true)
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [moves, setMoves] = useState<StockMoveRow[]>([])
@@ -31,14 +32,31 @@ export function WarehousePage() {
       .finally(() => setLoading(false))
   }, [])
 
+  const categories = useMemo(() => {
+    const set = new Set<string>()
+    for (const s of stock) set.add(s.category)
+    return Array.from(set).sort((a, b) => a.localeCompare(b))
+  }, [stock])
+
   const filtered = useMemo(() => {
     return stock.filter((s) => {
-      if (filter === 'assets' && s.kind !== 'asset') return false
-      if (filter === 'consumables' && s.kind !== 'consumable') return false
+      if (kindFilter === 'assets' && s.kind !== 'asset') return false
+      if (kindFilter === 'consumables' && s.kind !== 'consumable') return false
+      if (categoryFilter !== 'all' && s.category !== categoryFilter) return false
       if (search.trim() && !s.name.toLowerCase().includes(search.toLowerCase().trim())) return false
       return true
     })
-  }, [stock, filter, search])
+  }, [stock, kindFilter, categoryFilter, search])
+
+  const grouped = useMemo(() => {
+    const map = new Map<string, WarehouseStockRow[]>()
+    for (const s of filtered) {
+      const list = map.get(s.category) ?? []
+      list.push(s)
+      map.set(s.category, list)
+    }
+    return Array.from(map.entries()).sort((a, b) => a[0].localeCompare(b[0]))
+  }, [filtered])
 
   const toggleExpand = (itemId: number) => {
     if (expandedId === itemId) {
@@ -62,7 +80,7 @@ export function WarehousePage() {
       <h1 className="text-xl font-semibold text-ink mb-4">{ru.admin.stock.title}</h1>
 
       <div className="flex gap-2.5 flex-wrap mb-3.5">
-        <div className="relative flex-1 min-w-[160px]">
+        <div className="relative flex-1 min-w-[140px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
           <input
             value={search}
@@ -71,13 +89,23 @@ export function WarehousePage() {
             className="w-full bg-surface rounded-lg pl-10 pr-4 py-2 text-sm border border-line focus:border-accent focus:outline-none"
           />
         </div>
+        <select
+          value={categoryFilter}
+          onChange={(e) => setCategoryFilter(e.target.value)}
+          className="bg-surface rounded-lg px-3 py-2 text-sm border border-line focus:border-accent focus:outline-none"
+        >
+          <option value="all">{ru.admin.stock.allCategories}</option>
+          {categories.map((c) => (
+            <option key={c} value={c}>{c}</option>
+          ))}
+        </select>
         <div className="inline-flex bg-surface border border-line rounded-lg p-0.5">
-          {(['all', 'assets', 'consumables'] as Filter[]).map((f) => (
+          {(['all', 'assets', 'consumables'] as KindFilter[]).map((f) => (
             <button
               key={f}
-              onClick={() => setFilter(f)}
+              onClick={() => setKindFilter(f)}
               className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
-                filter === f ? 'bg-accent text-white' : 'text-muted'
+                kindFilter === f ? 'bg-accent text-white' : 'text-muted'
               }`}
             >
               {f === 'all' ? ru.admin.stock.all : f === 'assets' ? ru.admin.stock.assets : ru.admin.stock.consumables}
@@ -86,75 +114,81 @@ export function WarehousePage() {
         </div>
       </div>
 
-      <div className="bg-surface border border-line rounded-xl overflow-x-auto">
-        <table className="w-full border-collapse">
-          <thead>
-            <tr>
-              <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line">{ru.admin.stock.title}</th>
-              <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line whitespace-nowrap">Остаток / {ru.admin.stock.min}</th>
-              <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line">Статус</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((item) => {
-              const expanded = expandedId === item.item_id
-              const minPct = item.min_stock ? Math.min((item.qty / item.min_stock) * 100, 100) : 100
-              return (
-                <>
-                  <tr
-                    key={item.item_id}
-                    onClick={() => toggleExpand(item.item_id)}
-                    className="cursor-pointer transition-colors hover:bg-app"
-                  >
-                    <td className="px-2.5 py-2.5 border-b border-line">
-                      <span className="text-sm text-ink">{item.name}</span>
-                      <span className="text-muted text-xs block">{item.category}</span>
-                    </td>
-                    <td className="px-2.5 py-2.5 border-b border-line whitespace-nowrap" style={{ minWidth: '140px' }}>
-                      <span className={item.below_min ? 'text-bad' : 'text-ink'}>{formatQty(item.qty, item)}</span>
-                      <span className="text-muted text-xs"> / {item.min_stock ?? '—'}</span>
-                      <ProgressBar value={minPct} color={item.below_min ? 'var(--bad)' : 'var(--ok)'} />
-                    </td>
-                    <td className="px-2.5 py-2.5 border-b border-line">
-                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
-                        item.below_min ? 'bg-bad-soft text-bad' : 'bg-ok-soft text-ok'
-                      }`}>
-                        {item.below_min ? ru.admin.stock.belowMin : 'в норме'}
-                      </span>
-                    </td>
+      <div className="space-y-5">
+        {grouped.map(([category, items]) => (
+          <div key={category}>
+            <h2 className="font-semibold text-sm text-ink mb-2 px-1">{category}</h2>
+            <div className="bg-surface border border-line rounded-xl overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line">{ru.admin.stock.title}</th>
+                    <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line whitespace-nowrap">Остаток / {ru.admin.stock.min}</th>
+                    <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line">Статус</th>
                   </tr>
-                  {expanded && (
-                    <tr>
-                      <td colSpan={3} className="px-2.5 py-3 border-b border-line bg-app">
-                        <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{ru.admin.stock.history}</div>
-                        {movesLoading ? (
-                          <div className="text-sm text-muted">{ru.app.loading}</div>
-                        ) : moves.length === 0 ? (
-                          <div className="text-sm text-muted">{ru.admin.stock.noHistory}</div>
-                        ) : (
-                          <div className="space-y-1.5">
-                            {moves.map((m) => (
-                              <div key={m.id} className="text-xs flex items-start justify-between gap-2">
-                                <div className="min-w-0">
-                                  <span className="text-ink">{m.source_type}</span>
-                                  {m.note && <span className="text-muted"> · {m.note}</span>}
-                                  <span className="text-muted block">{formatDateTime(m.moved_at)}</span>
+                </thead>
+                <tbody>
+                  {items.map((item) => {
+                    const expanded = expandedId === item.item_id
+                    const minPct = item.min_stock ? Math.min((item.qty / item.min_stock) * 100, 100) : 100
+                    return (
+                      <>
+                        <tr
+                          key={item.item_id}
+                          onClick={() => toggleExpand(item.item_id)}
+                          className="cursor-pointer transition-colors hover:bg-app"
+                        >
+                          <td className="px-2.5 py-2.5 border-b border-line">
+                            <span className="text-sm text-ink">{item.name}</span>
+                          </td>
+                          <td className="px-2.5 py-2.5 border-b border-line whitespace-nowrap" style={{ minWidth: '140px' }}>
+                            <span className={item.below_min ? 'text-bad' : 'text-ink'}>{formatQty(item.qty, item)}</span>
+                            <span className="text-muted text-xs"> / {item.min_stock ?? '—'}</span>
+                            <ProgressBar value={minPct} color={item.below_min ? 'var(--bad)' : 'var(--ok)'} />
+                          </td>
+                          <td className="px-2.5 py-2.5 border-b border-line">
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
+                              item.below_min ? 'bg-bad-soft text-bad' : 'bg-ok-soft text-ok'
+                            }`}>
+                              {item.below_min ? ru.admin.stock.belowMin : 'в норме'}
+                            </span>
+                          </td>
+                        </tr>
+                        {expanded && (
+                          <tr>
+                            <td colSpan={3} className="px-2.5 py-3 border-b border-line bg-app">
+                              <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{ru.admin.stock.history}</div>
+                              {movesLoading ? (
+                                <div className="text-sm text-muted">{ru.app.loading}</div>
+                              ) : moves.length === 0 ? (
+                                <div className="text-sm text-muted">{ru.admin.stock.noHistory}</div>
+                              ) : (
+                                <div className="space-y-1.5">
+                                  {moves.map((m) => (
+                                    <div key={m.id} className="text-xs flex items-start justify-between gap-2">
+                                      <div className="min-w-0">
+                                        <span className="text-ink">{m.source_type}</span>
+                                        {m.note && <span className="text-muted"> · {m.note}</span>}
+                                        <span className="text-muted block">{formatDateTime(m.moved_at)}</span>
+                                      </div>
+                                      <span className="text-muted shrink-0">{m.qty}</span>
+                                    </div>
+                                  ))}
                                 </div>
-                                <span className="text-muted shrink-0">{m.qty}</span>
-                              </div>
-                            ))}
-                          </div>
+                              )}
+                            </td>
+                          </tr>
                         )}
-                      </td>
-                    </tr>
-                  )}
-                </>
-              )
-            })}
-          </tbody>
-        </table>
-        {filtered.length === 0 && (
-          <div className="px-4 py-6 text-center text-muted text-sm">Ничего не найдено</div>
+                      </>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        ))}
+        {grouped.length === 0 && (
+          <div className="bg-surface border border-line rounded-xl px-4 py-6 text-center text-muted text-sm">Ничего не найдено</div>
         )}
       </div>
     </div>
