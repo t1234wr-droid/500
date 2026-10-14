@@ -1,0 +1,149 @@
+import { useState, useEffect } from 'react'
+import { fetchAllContacts, createContact, updateContact, deleteContact } from '@/modules/admin/api'
+import type { Contact } from '@/lib/database.types'
+import { ru } from '@/i18n/ru'
+import { toast } from '@/lib/toast'
+import { Plus, Trash2, Edit3, X, Check, Phone, MessageCircle } from 'lucide-react'
+
+export function AdminContacts() {
+  const [contacts, setContacts] = useState<Contact[]>([])
+  const [loading, setLoading] = useState(true)
+  const [editing, setEditing] = useState<Contact | null>(null)
+  const [adding, setAdding] = useState(false)
+
+  const load = () => { fetchAllContacts().then(setContacts).catch(() => {}).finally(() => setLoading(false)) }
+  useEffect(() => { load() }, [])
+
+  if (loading) return <div className="px-4 pt-8 text-center text-slate-400">{ru.app.loading}</div>
+
+  return (
+    <div className="px-4 pt-6 pb-28">
+      <div className="flex items-center justify-between mb-4">
+        <h1 className="text-xl font-semibold text-slate-800">{ru.admin.adminContacts.title}</h1>
+        <button onClick={() => setAdding(true)} className="bg-sky-600 text-white rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-1.5">
+          <Plus className="w-4 h-4" />{ru.admin.adminContacts.add}
+        </button>
+      </div>
+
+      {contacts.length === 0 ? (
+        <p className="text-sm text-slate-400 text-center mt-8">{ru.admin.adminContacts.noContacts}</p>
+      ) : (
+        <div className="space-y-2">
+          {contacts.map((c) => (
+            <div key={c.id} className="bg-white rounded-xl border border-slate-100 px-4 py-3">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-slate-800">{c.name}</p>
+                  <p className="text-xs text-slate-400">{c.group_name ?? '—'} · {c.role_title ?? '—'}</p>
+                  <div className="flex items-center gap-2 mt-1">
+                    <span className="text-xs text-slate-400 flex items-center gap-1"><Phone className="w-3 h-3" />{c.phone_e164}</span>
+                    {c.has_whatsapp && <span className="text-xs text-green-600 flex items-center gap-1"><MessageCircle className="w-3 h-3" />WA</span>}
+                  </div>
+                </div>
+                <button onClick={() => setEditing(c)} className="text-slate-400 hover:text-sky-600">
+                  <Edit3 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {(editing || adding) && (
+        <ContactEditor
+          contact={editing}
+          onClose={() => { setEditing(null); setAdding(false) }}
+          onSave={async (name, group, roleTitle, phone, whatsapp, active) => {
+            try {
+              if (editing) {
+                await updateContact(editing.id, { name, group_name: group, role_title: roleTitle, phone_e164: phone, has_whatsapp: whatsapp, active })
+              } else {
+                await createContact({ name, group_name: group, role_title: roleTitle, phone_e164: phone, has_whatsapp: whatsapp, sort: 0 })
+              }
+              toast(ru.admin.adminContacts.save, 'success')
+              setEditing(null); setAdding(false); load()
+            } catch (e) { toast(String(e), 'error') }
+          }}
+          onDelete={editing ? async () => {
+            if (!confirm(ru.admin.adminContacts.confirmDelete)) return
+            try { await deleteContact(editing.id); toast(ru.admin.adminContacts.delete, 'success'); setEditing(null); load() }
+            catch (e) { toast(String(e), 'error') }
+          } : undefined}
+        />
+      )}
+    </div>
+  )
+}
+
+function ContactEditor({
+  contact,
+  onClose,
+  onSave,
+  onDelete,
+}: {
+  contact: Contact | null
+  onClose: () => void
+  onSave: (name: string, group: string | null, roleTitle: string | null, phone: string, whatsapp: boolean, active: boolean) => void
+  onDelete?: () => void
+}) {
+  const [name, setName] = useState(contact?.name ?? '')
+  const [group, setGroup] = useState(contact?.group_name ?? '')
+  const [roleTitle, setRoleTitle] = useState(contact?.role_title ?? '')
+  const [phone, setPhone] = useState(contact?.phone_e164 ?? '+2')
+  const [whatsapp, setWhatsapp] = useState(contact?.has_whatsapp ?? true)
+  const [active, setActive] = useState(contact?.active ?? true)
+
+  return (
+    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
+      <div className="bg-white rounded-2xl w-full max-w-sm p-5">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-base font-semibold text-slate-800">{contact ? ru.admin.adminContacts.title : ru.admin.adminContacts.add}</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-slate-400" /></button>
+        </div>
+        <div className="space-y-3">
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">{ru.admin.adminContacts.name}</label>
+            <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">{ru.admin.adminContacts.group}</label>
+            <input value={group} onChange={(e) => setGroup(e.target.value)} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">{ru.admin.adminContacts.roleTitle}</label>
+            <input value={roleTitle} onChange={(e) => setRoleTitle(e.target.value)} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+          </div>
+          <div>
+            <label className="block text-sm text-slate-600 mb-1">{ru.admin.adminContacts.phone}</label>
+            <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+20123456789" className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+          </div>
+          <label className="flex items-center gap-2">
+            <input type="checkbox" checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} className="w-4 h-4" />
+            <span className="text-sm text-slate-600">{ru.admin.adminContacts.whatsapp}</span>
+          </label>
+          {contact && (
+            <label className="flex items-center gap-2">
+              <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="w-4 h-4" />
+              <span className="text-sm text-slate-600">{ru.admin.adminContacts.active}</span>
+            </label>
+          )}
+        </div>
+        <div className="flex gap-3 mt-4">
+          {onDelete && (
+            <button onClick={onDelete} className="bg-red-50 text-red-600 rounded-xl px-4 py-3 font-medium">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          )}
+          <button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 rounded-xl py-3 font-medium">{ru.cleaning.cancel}</button>
+          <button
+            onClick={() => onSave(name.trim(), group.trim() || null, roleTitle.trim() || null, phone.trim(), whatsapp, active)}
+            disabled={!name.trim() || !phone.trim()}
+            className="flex-1 bg-sky-600 text-white rounded-xl py-3 font-medium disabled:opacity-40 flex items-center justify-center gap-2"
+          >
+            <Check className="w-4 h-4" />{ru.admin.adminContacts.save}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
