@@ -1,10 +1,11 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SvLayout } from '@/modules/core/SvLayout'
 import { useAuth } from '@/modules/core/store'
 import { ru } from '@/i18n/ru'
 import { Shield } from 'lucide-react'
 import { AdminLayout } from '@/modules/admin/AdminLayout'
+import { MoveModal } from '@/modules/admin/MoveForm'
 
 const ApartmentList = lazy(() => import('@/modules/apartments/ApartmentList').then(m => ({ default: m.ApartmentList })))
 const ApartmentDetail = lazy(() => import('@/modules/apartments/ApartmentDetail').then(m => ({ default: m.ApartmentDetail })))
@@ -16,7 +17,6 @@ const ProfilePage = lazy(() => import('@/modules/core/ProfilePage').then(m => ({
 
 const Dashboard = lazy(() => import('@/modules/admin/Dashboard').then(m => ({ default: m.Dashboard })))
 const WarehousePage = lazy(() => import('@/modules/admin/WarehousePage').then(m => ({ default: m.WarehousePage })))
-const MoveForm = lazy(() => import('@/modules/admin/MoveForm').then(m => ({ default: m.MoveForm })))
 const AdminApartmentList = lazy(() => import('@/modules/admin/AdminApartmentList').then(m => ({ default: m.AdminApartmentList })))
 const AdminApartmentDetail = lazy(() => import('@/modules/admin/AdminApartmentDetail').then(m => ({ default: m.AdminApartmentDetail })))
 const AdminMore = lazy(() => import('@/modules/admin/AdminMore').then(m => ({ default: m.AdminMore })))
@@ -27,15 +27,29 @@ const AdminContacts = lazy(() => import('@/modules/admin/AdminContacts').then(m 
 const NormTemplatesPage = lazy(() => import('@/modules/admin/NormTemplatesPage').then(m => ({ default: m.NormTemplatesPage })))
 
 function Loading() {
-  return <div className="px-4 pt-8 text-center text-slate-400">{ru.app.loading}</div>
+  return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
 }
 
 function AdminBanner() {
   return (
-    <div className="sticky top-0 z-40 bg-amber-500 text-white text-center text-sm py-2 font-medium flex items-center justify-center gap-2">
+    <div className="sticky top-0 z-40 bg-warn-soft text-warn text-center text-sm py-2 font-medium flex items-center justify-center gap-2">
       <Shield className="w-4 h-4" />
       {ru.adminBanner}
     </div>
+  )
+}
+
+function MoveRoute() {
+  const [show, setShow] = useState(true)
+  return (
+    <>
+      {show && (
+        <MoveModal
+          onClose={() => { setShow(false); window.history.back() }}
+          onDone={() => { setShow(false); window.history.back() }}
+        />
+      )}
+    </>
   )
 }
 
@@ -46,7 +60,7 @@ export function AdminRoutes() {
         <Routes>
           <Route index element={<Dashboard />} />
           <Route path="stock" element={<WarehousePage />} />
-          <Route path="move" element={<MoveForm />} />
+          <Route path="move" element={<MoveRoute />} />
           <Route path="apartments" element={<AdminApartmentList />} />
           <Route path="apartments/:id" element={<AdminApartmentDetail />} />
           <Route path="more" element={<AdminMore />} />

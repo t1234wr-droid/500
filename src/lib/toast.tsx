@@ -46,10 +46,10 @@ export function ToastContainer() {
           onClick={() => dismiss(t.id)}
           className={`pointer-events-auto rounded-xl px-4 py-3 text-sm font-medium shadow-lg max-w-sm w-full text-center ${
             t.kind === 'error'
-              ? 'bg-red-600 text-white'
+              ? 'bg-bad text-white'
               : t.kind === 'success'
-                ? 'bg-green-600 text-white'
-                : 'bg-slate-800 text-white'
+                ? 'bg-ok text-white'
+                : 'bg-surface text-ink border border-line'
           }`}
         >
           {t.message}

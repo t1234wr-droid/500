@@ -105,7 +105,7 @@ export const ru = {
     nav: {
       home: 'Главная',
       stock: 'Склад',
-      move: '➕',
+      move: 'Операция',
       apartments: 'Квартиры',
       more: 'Ещё',
     },

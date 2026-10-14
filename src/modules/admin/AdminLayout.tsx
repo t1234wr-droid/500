@@ -13,38 +13,68 @@ const tabs = [
 export function AdminLayout({ children }: { children: React.ReactNode }) {
   const { pathname } = useLocation()
   return (
-    <div className="min-h-screen bg-slate-50 flex flex-col">
-      <main className="flex-1 pb-20 max-w-lg mx-auto w-full">{children}</main>
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
-        <div className="max-w-lg mx-auto flex">
+    <div className="min-h-screen bg-app flex flex-col lg:grid lg:grid-cols-[208px_1fr]">
+      {/* Desktop sidebar */}
+      <aside className="hidden lg:flex flex-col bg-surface border-r border-line sticky top-0 h-screen p-5 pb-8">
+        <div className="font-semibold text-lg text-ink px-2.5 pb-4.5">Склад</div>
+        <nav className="flex flex-col gap-0.5">
           {tabs.map((tab) => {
             const active = tab.end ? pathname === tab.to : pathname.startsWith(tab.to)
             const Icon = tab.icon
-            const isPlus = tab.label === ru.admin.nav.move
             return (
               <NavLink
                 key={tab.to}
                 to={tab.to}
                 end={tab.end}
-                className="flex-1 flex flex-col items-center gap-1 py-2.5"
+                className={`flex items-center gap-2.5 w-full px-2.5 py-2.5 rounded-lg text-left transition-colors ${
+                  active
+                    ? 'bg-accent-soft text-accent font-semibold'
+                    : 'text-muted hover:bg-app'
+                }`}
               >
-                {isPlus ? (
-                  <div className={`w-8 h-8 rounded-full flex items-center justify-center -mt-1 ${active ? 'bg-sky-600' : 'bg-slate-300'}`}>
-                    <Icon className="w-5 h-5 text-white" strokeWidth={2.5} />
-                  </div>
-                ) : (
-                  <Icon
-                    className={`w-5 h-5 ${active ? 'text-sky-600' : 'text-slate-400'}`}
-                    strokeWidth={active ? 2.5 : 2}
-                  />
-                )}
-                <span className={`text-[10px] ${active ? 'text-sky-600 font-medium' : 'text-slate-400'}`}>
-                  {tab.label}
-                </span>
+                <Icon className="w-5 h-5 flex-none" strokeWidth={active ? 2.2 : 1.8} />
+                <span className="text-sm">{tab.label}</span>
               </NavLink>
             )
           })}
-        </div>
+        </nav>
+      </aside>
+
+      {/* Main content */}
+      <main className="flex-1 lg:px-7 lg:py-6 pb-24 lg:pb-8 max-w-[1180px] w-full">
+        {children}
+      </main>
+
+      {/* Mobile bottom bar */}
+      <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-surface border-t border-line z-50 flex">
+        {tabs.map((tab) => {
+          const active = tab.end ? pathname === tab.to : pathname.startsWith(tab.to)
+          const Icon = tab.icon
+          const isPlus = tab.to === '/admin/move'
+          return (
+            <NavLink
+              key={tab.to}
+              to={tab.to}
+              end={tab.end}
+              className="flex-1 flex flex-col items-center gap-0.5 py-1.5"
+              style={{ paddingBottom: 'calc(0.375rem + env(safe-area-inset-bottom, 0px))' }}
+            >
+              {isPlus ? (
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center -mt-1 transition-colors ${active ? 'bg-accent' : 'bg-[var(--line)]'}`}>
+                  <Icon className="w-5 h-5 text-white" strokeWidth={2.5} />
+                </div>
+              ) : (
+                <Icon
+                  className={`w-5 h-5 transition-colors ${active ? 'text-accent' : 'text-muted'}`}
+                  strokeWidth={active ? 2.2 : 1.8}
+                />
+              )}
+              <span className={`text-[10px] transition-colors ${active ? 'text-accent font-medium' : 'text-muted'}`}>
+                {tab.label}
+              </span>
+            </NavLink>
+          )
+        })}
       </nav>
     </div>
   )

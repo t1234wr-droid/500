@@ -1,11 +1,19 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchWarehouseStock, fetchStockMoves } from '@/modules/admin/api'
-import type { WarehouseStockRow, StockMoveRow, ItemKind } from '@/lib/database.types'
+import type { WarehouseStockRow, StockMoveRow } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { formatQty, formatDateTime } from '@/lib/format'
-import { Search, ChevronDown, ChevronUp, AlertCircle } from 'lucide-react'
+import { Search, ChevronDown, ChevronUp } from 'lucide-react'
 
 type Filter = 'all' | 'assets' | 'consumables'
+
+function ProgressBar({ value, color }: { value: number; color: string }) {
+  return (
+    <span className="block h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+      <span className="block h-full rounded-full" style={{ width: `${Math.min(value, 100)}%`, background: color }} />
+    </span>
+  )
+}
 
 export function WarehousePage() {
   const [stock, setStock] = useState<WarehouseStockRow[]>([])
@@ -15,7 +23,6 @@ export function WarehousePage() {
   const [expandedId, setExpandedId] = useState<number | null>(null)
   const [moves, setMoves] = useState<StockMoveRow[]>([])
   const [movesLoading, setMovesLoading] = useState(false)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
 
   useEffect(() => {
     fetchWarehouseStock()
@@ -24,17 +31,10 @@ export function WarehousePage() {
       .finally(() => setLoading(false))
   }, [])
 
-  const categories = useMemo(() => {
-    const set = new Set<string>()
-    stock.forEach((s) => set.add(s.category))
-    return Array.from(set).sort()
-  }, [stock])
-
   const filtered = useMemo(() => {
     return stock.filter((s) => {
       if (filter === 'assets' && s.kind !== 'asset') return false
       if (filter === 'consumables' && s.kind !== 'consumable') return false
-      if (selectedCategory && s.category !== selectedCategory) return false
       if (search.trim() && !s.name.toLowerCase().includes(search.toLowerCase().trim())) return false
       return true
     })
@@ -54,123 +54,108 @@ export function WarehousePage() {
   }
 
   if (loading) {
-    return <div className="px-4 pt-8 text-center text-slate-400">{ru.app.loading}</div>
+    return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
   }
 
   return (
-    <div className="px-4 pt-6 pb-28">
-      <h1 className="text-xl font-semibold text-slate-800 mb-4">{ru.admin.stock.title}</h1>
+    <div className="px-4 pt-5 pb-28 lg:px-0 lg:pt-0">
+      <h1 className="text-xl font-semibold text-ink mb-4">{ru.admin.stock.title}</h1>
 
-      {/* Search */}
-      <div className="relative mb-3">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder={ru.admin.stock.search}
-          className="w-full bg-white rounded-xl pl-10 pr-4 py-2.5 text-sm border border-slate-200 focus:border-sky-500 focus:outline-none"
-        />
-      </div>
-
-      {/* Filter toggle */}
-      <div className="flex gap-2 mb-4">
-        {(['all', 'assets', 'consumables'] as Filter[]).map((f) => (
-          <button
-            key={f}
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-              filter === f
-                ? 'bg-sky-600 text-white'
-                : 'bg-white text-slate-500 border border-slate-200'
-            }`}
-          >
-            {f === 'all' ? ru.admin.stock.all : f === 'assets' ? ru.admin.stock.assets : ru.admin.stock.consumables}
-          </button>
-        ))}
-      </div>
-
-      {/* Category chips */}
-      {categories.length > 0 && (
-        <div className="flex gap-2 mb-4 overflow-x-auto pb-1">
-          <button
-            onClick={() => setSelectedCategory(null)}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-              selectedCategory === null ? 'bg-slate-700 text-white' : 'bg-white text-slate-500 border border-slate-200'
-            }`}
-          >
-            {ru.admin.stock.all}
-          </button>
-          {categories.map((cat) => (
+      <div className="flex gap-2.5 flex-wrap mb-3.5">
+        <div className="relative flex-1 min-w-[160px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder={ru.admin.stock.search}
+            className="w-full bg-surface rounded-lg pl-10 pr-4 py-2 text-sm border border-line focus:border-accent focus:outline-none"
+          />
+        </div>
+        <div className="inline-flex bg-surface border border-line rounded-lg p-0.5">
+          {(['all', 'assets', 'consumables'] as Filter[]).map((f) => (
             <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium whitespace-nowrap transition-colors ${
-                selectedCategory === cat ? 'bg-slate-700 text-white' : 'bg-white text-slate-500 border border-slate-200'
+              key={f}
+              onClick={() => setFilter(f)}
+              className={`px-3 py-1.5 rounded-md text-sm transition-colors ${
+                filter === f ? 'bg-accent text-white' : 'text-muted'
               }`}
             >
-              {cat}
+              {f === 'all' ? ru.admin.stock.all : f === 'assets' ? ru.admin.stock.assets : ru.admin.stock.consumables}
             </button>
           ))}
         </div>
-      )}
+      </div>
 
-      {/* Items */}
-      <div className="space-y-2">
-        {filtered.map((item) => {
-          const expanded = expandedId === item.item_id
-          return (
-            <div key={item.item_id} className="bg-white rounded-xl border border-slate-100 overflow-hidden">
-              <button
-                onClick={() => toggleExpand(item.item_id)}
-                className="w-full px-4 py-3 flex items-center justify-between text-left"
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium text-slate-800 truncate">{item.name}</p>
-                  <p className="text-xs text-slate-400">{item.category}</p>
-                </div>
-                <div className="flex items-center gap-2 shrink-0 ml-2">
-                  <div className="text-right">
-                    <p className={`text-sm font-medium ${item.below_min ? 'text-red-500' : 'text-slate-700'}`}>
-                      {formatQty(item.qty, item)}
-                    </p>
-                    {item.min_stock !== null && (
-                      <p className="text-xs text-slate-400">
-                        {ru.admin.stock.min}: {item.min_stock}
-                      </p>
-                    )}
-                  </div>
-                  {item.below_min && <AlertCircle className="w-4 h-4 text-red-400" />}
-                  {expanded ? <ChevronUp className="w-4 h-4 text-slate-300" /> : <ChevronDown className="w-4 h-4 text-slate-300" />}
-                </div>
-              </button>
-              {expanded && (
-                <div className="border-t border-slate-100 px-4 py-3 bg-slate-50">
-                  <p className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2">
-                    {ru.admin.stock.history}
-                  </p>
-                  {movesLoading ? (
-                    <p className="text-sm text-slate-400">{ru.app.loading}</p>
-                  ) : moves.length === 0 ? (
-                    <p className="text-sm text-slate-400">{ru.admin.stock.noHistory}</p>
-                  ) : (
-                    <div className="space-y-2">
-                      {moves.map((m) => (
-                        <div key={m.id} className="text-xs flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <span className="text-slate-600">{m.source_type}</span>
-                            {m.note && <span className="text-slate-400"> · {m.note}</span>}
-                            <span className="text-slate-400 block">{formatDateTime(m.moved_at)}</span>
+      <div className="bg-surface border border-line rounded-xl overflow-x-auto">
+        <table className="w-full border-collapse">
+          <thead>
+            <tr>
+              <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line">{ru.admin.stock.title}</th>
+              <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line whitespace-nowrap">Остаток / {ru.admin.stock.min}</th>
+              <th className="text-left font-medium text-muted text-xs px-2.5 py-2 border-b border-line">Статус</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map((item) => {
+              const expanded = expandedId === item.item_id
+              const minPct = item.min_stock ? Math.min((item.qty / item.min_stock) * 100, 100) : 100
+              return (
+                <>
+                  <tr
+                    key={item.item_id}
+                    onClick={() => toggleExpand(item.item_id)}
+                    className="cursor-pointer transition-colors hover:bg-app"
+                  >
+                    <td className="px-2.5 py-2.5 border-b border-line">
+                      <span className="text-sm text-ink">{item.name}</span>
+                      <span className="text-muted text-xs block">{item.category}</span>
+                    </td>
+                    <td className="px-2.5 py-2.5 border-b border-line whitespace-nowrap" style={{ minWidth: '140px' }}>
+                      <span className={item.below_min ? 'text-bad' : 'text-ink'}>{formatQty(item.qty, item)}</span>
+                      <span className="text-muted text-xs"> / {item.min_stock ?? '—'}</span>
+                      <ProgressBar value={minPct} color={item.below_min ? 'var(--bad)' : 'var(--ok)'} />
+                    </td>
+                    <td className="px-2.5 py-2.5 border-b border-line">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap ${
+                        item.below_min ? 'bg-bad-soft text-bad' : 'bg-ok-soft text-ok'
+                      }`}>
+                        {item.below_min ? ru.admin.stock.belowMin : 'в норме'}
+                      </span>
+                    </td>
+                  </tr>
+                  {expanded && (
+                    <tr>
+                      <td colSpan={3} className="px-2.5 py-3 border-b border-line bg-app">
+                        <div className="text-xs font-semibold text-muted uppercase tracking-wider mb-2">{ru.admin.stock.history}</div>
+                        {movesLoading ? (
+                          <div className="text-sm text-muted">{ru.app.loading}</div>
+                        ) : moves.length === 0 ? (
+                          <div className="text-sm text-muted">{ru.admin.stock.noHistory}</div>
+                        ) : (
+                          <div className="space-y-1.5">
+                            {moves.map((m) => (
+                              <div key={m.id} className="text-xs flex items-start justify-between gap-2">
+                                <div className="min-w-0">
+                                  <span className="text-ink">{m.source_type}</span>
+                                  {m.note && <span className="text-muted"> · {m.note}</span>}
+                                  <span className="text-muted block">{formatDateTime(m.moved_at)}</span>
+                                </div>
+                                <span className="text-muted shrink-0">{m.qty}</span>
+                              </div>
+                            ))}
                           </div>
-                          <span className="text-slate-500 shrink-0">{m.qty}</span>
-                        </div>
-                      ))}
-                    </div>
+                        )}
+                      </td>
+                    </tr>
                   )}
-                </div>
-              )}
-            </div>
-          )
-        })}
+                </>
+              )
+            })}
+          </tbody>
+        </table>
+        {filtered.length === 0 && (
+          <div className="px-4 py-6 text-center text-muted text-sm">Ничего не найдено</div>
+        )}
       </div>
     </div>
   )

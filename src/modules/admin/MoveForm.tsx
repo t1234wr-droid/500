@@ -1,11 +1,10 @@
 import { useState, useEffect, useMemo } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { fetchWarehouseStock, fetchApartmentsAdmin, fetchAllStaff, postMove } from '@/modules/admin/api'
 import type { WarehouseStockRow, Apartment, Staff } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { formatQty } from '@/lib/format'
 import { toast, errorMessage } from '@/lib/toast'
-import { ArrowLeft, Plus, Minus, Trash2, Loader as Loader2, Check } from 'lucide-react'
+import { Plus, Minus, Trash2, Loader as Loader2, Check, X } from 'lucide-react'
 
 interface MoveOpDef {
   op: string
@@ -33,8 +32,7 @@ interface CartLine {
   unitCost: string
 }
 
-export function MoveForm() {
-  const navigate = useNavigate()
+export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
   const [stock, setStock] = useState<WarehouseStockRow[]>([])
   const [apartments, setApartments] = useState<Apartment[]>([])
   const [staffList, setStaffList] = useState<Staff[]>([])
@@ -108,7 +106,7 @@ export function MoveForm() {
         })
       }
       toast(ru.admin.move.success, 'success')
-      navigate('/admin')
+      onDone()
     } catch (e) {
       toast(errorMessage(e), 'error')
     } finally {
@@ -117,169 +115,175 @@ export function MoveForm() {
   }
 
   if (loading) {
-    return <div className="px-4 pt-8 text-center text-slate-400">{ru.app.loading}</div>
+    return (
+      <>
+        <div className="fixed inset-0 bg-black/45 z-[60] anim-scrim" onClick={onClose} />
+        <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[61] bg-surface rounded-2xl p-6 max-w-sm w-full">
+          <div className="text-center text-muted text-sm">{ru.app.loading}</div>
+        </div>
+      </>
+    )
   }
 
   return (
-    <div className="min-h-screen bg-slate-50">
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate('/admin')} className="p-1 -ml-1">
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
+    <>
+      <div className="fixed inset-0 bg-black/45 z-[60] anim-scrim" onClick={onClose} />
+      <div className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 w-full max-w-sm max-h-[90vh] overflow-auto bg-surface rounded-2xl p-5 border border-line max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:translate-x-0 max-md:translate-y-0 max-md:w-full max-md:rounded-t-2xl max-md:rounded-b-none max-md:anim-sheet max-md:max-h-[85vh]">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-ink">{ru.admin.move.title}</h2>
+          <button onClick={onClose} className="p-1">
+            <X className="w-5 h-5 text-muted" />
           </button>
-          <h1 className="text-lg font-semibold text-slate-800">{ru.admin.move.title}</h1>
         </div>
-      </div>
 
-      <div className="px-4 pt-4 pb-28 space-y-4">
-        {/* Operation */}
-        <Field label={ru.admin.move.operation}>
-          <select
-            value={op}
-            onChange={(e) => setOp(e.target.value)}
-            className="w-full bg-white rounded-xl px-4 py-3 text-sm border border-slate-200 focus:border-sky-500 focus:outline-none"
-          >
-            {ops.map((o) => (
-              <option key={o.op} value={o.op}>{o.label}</option>
-            ))}
-          </select>
-        </Field>
-
-        {/* Apartment */}
-        {opDef.needsApartment && (
-          <Field label={ru.admin.move.apartment}>
-            <select
-              value={apartmentId ?? ''}
-              onChange={(e) => setApartmentId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full bg-white rounded-xl px-4 py-3 text-sm border border-slate-200 focus:border-sky-500 focus:outline-none"
-            >
-              <option value="">—</option>
-              {apartments.map((a) => (
-                <option key={a.id} value={a.id}>{a.code}</option>
-              ))}
-            </select>
-          </Field>
-        )}
-
-        {/* Staff */}
-        {opDef.needsStaff && (
-          <Field label={ru.admin.move.staff}>
-            <select
-              value={staffId ?? ''}
-              onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : null)}
-              className="w-full bg-white rounded-xl px-4 py-3 text-sm border border-slate-200 focus:border-sky-500 focus:outline-none"
-            >
-              <option value="">—</option>
-              {staffList.map((s) => (
-                <option key={s.id} value={s.id}>{s.full_name}</option>
-              ))}
-            </select>
-          </Field>
-        )}
-
-        {/* Item search */}
-        <Field label={ru.admin.move.items}>
-          <input
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder={ru.admin.stock.search}
-            className="w-full bg-white rounded-xl px-4 py-3 text-sm border border-slate-200 focus:border-sky-500 focus:outline-none mb-2"
-          />
-          {search.trim() && (
-            <div className="bg-white rounded-xl border border-slate-100 max-h-48 overflow-y-auto">
-              {filteredStock.map((s) => (
+        <div className="space-y-4">
+          {/* Operation type */}
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.operation}</label>
+            <div className="flex gap-2 flex-wrap">
+              {ops.map((o) => (
                 <button
-                  key={s.item_id}
-                  onClick={() => { addToCart(s); setSearch('') }}
-                  className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-slate-50 border-b border-slate-50 last:border-0"
+                  key={o.op}
+                  onClick={() => setOp(o.op)}
+                  className={`rounded-full px-3.5 py-1.5 text-sm transition-colors border ${
+                    op === o.op ? 'bg-accent border-accent text-white' : 'bg-surface border-line text-muted'
+                  }`}
                 >
-                  <span className="text-sm text-slate-700 truncate">{s.name}</span>
-                  <span className="text-xs text-slate-400 shrink-0 ml-2">{formatQty(s.qty, s)}</span>
+                  {o.label}
                 </button>
               ))}
             </div>
-          )}
-        </Field>
+          </div>
 
-        {/* Cart */}
-        {cart.length > 0 && (
-          <div className="space-y-2">
-            {cart.map((line, idx) => (
-              <div key={line.itemId} className="bg-white rounded-xl border border-slate-100 px-3 py-3">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-sm font-medium text-slate-700">{line.itemName}</span>
-                  <button onClick={() => removeLine(idx)} className="text-red-400">
-                    <Trash2 className="w-4 h-4" />
+          {/* Apartment */}
+          {opDef.needsApartment && (
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.apartment}</label>
+              <select
+                value={apartmentId ?? ''}
+                onChange={(e) => setApartmentId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full bg-surface rounded-lg px-4 py-2.5 text-sm border border-line focus:border-accent focus:outline-none"
+              >
+                <option value="">—</option>
+                {apartments.map((a) => (
+                  <option key={a.id} value={a.id}>{a.code}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Staff */}
+          {opDef.needsStaff && (
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.staff}</label>
+              <select
+                value={staffId ?? ''}
+                onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : null)}
+                className="w-full bg-surface rounded-lg px-4 py-2.5 text-sm border border-line focus:border-accent focus:outline-none"
+              >
+                <option value="">—</option>
+                {staffList.map((s) => (
+                  <option key={s.id} value={s.id}>{s.full_name}</option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {/* Item search */}
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.items}</label>
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder={ru.admin.stock.search}
+              className="w-full bg-surface rounded-lg px-4 py-2.5 text-sm border border-line focus:border-accent focus:outline-none mb-2"
+            />
+            {search.trim() && (
+              <div className="bg-surface rounded-lg border border-line max-h-48 overflow-y-auto">
+                {filteredStock.map((s) => (
+                  <button
+                    key={s.item_id}
+                    onClick={() => { addToCart(s); setSearch('') }}
+                    className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-app border-b border-line last:border-0"
+                  >
+                    <span className="text-sm text-ink truncate">{s.name}</span>
+                    <span className="text-xs text-muted shrink-0 ml-2">{formatQty(s.qty, s)}</span>
                   </button>
-                </div>
-                <div className="flex gap-2">
-                  <div className="flex items-center bg-slate-100 rounded-lg">
-                    <button onClick={() => updateLine(idx, { qty: String(Math.max(1, Number(line.qty) - 1)) })} className="px-2 py-1.5">
-                      <Minus className="w-3.5 h-3.5 text-slate-500" />
-                    </button>
-                    <input
-                      type="number"
-                      value={line.qty}
-                      onChange={(e) => updateLine(idx, { qty: e.target.value })}
-                      className="w-14 bg-transparent text-center text-sm py-1.5 focus:outline-none"
-                    />
-                    <button onClick={() => updateLine(idx, { qty: String(Number(line.qty) + 1) })} className="px-2 py-1.5">
-                      <Plus className="w-3.5 h-3.5 text-slate-500" />
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Cart */}
+          {cart.length > 0 && (
+            <div className="space-y-2">
+              {cart.map((line, idx) => (
+                <div key={line.itemId} className="bg-surface rounded-lg border border-line px-3 py-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-medium text-ink">{line.itemName}</span>
+                    <button onClick={() => removeLine(idx)} className="text-bad">
+                      <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
-                  {opDef.needsCost && (
-                    <input
-                      type="number"
-                      value={line.unitCost}
-                      onChange={(e) => updateLine(idx, { unitCost: e.target.value })}
-                      placeholder={ru.admin.move.unitCost}
-                      className="flex-1 bg-slate-100 rounded-lg px-3 py-2 text-sm focus:outline-none"
-                    />
-                  )}
+                  <div className="flex gap-2">
+                    <div className="flex items-center bg-app rounded-lg">
+                      <button onClick={() => updateLine(idx, { qty: String(Math.max(1, Number(line.qty) - 1)) })} className="px-2 py-1.5">
+                        <Minus className="w-3.5 h-3.5 text-muted" />
+                      </button>
+                      <input
+                        type="number"
+                        value={line.qty}
+                        onChange={(e) => updateLine(idx, { qty: e.target.value })}
+                        className="w-14 bg-transparent text-center text-sm py-1.5 focus:outline-none"
+                      />
+                      <button onClick={() => updateLine(idx, { qty: String(Number(line.qty) + 1) })} className="px-2 py-1.5">
+                        <Plus className="w-3.5 h-3.5 text-muted" />
+                      </button>
+                    </div>
+                    {opDef.needsCost && (
+                      <input
+                        type="number"
+                        value={line.unitCost}
+                        onChange={(e) => updateLine(idx, { unitCost: e.target.value })}
+                        placeholder={ru.admin.move.unitCost}
+                        className="flex-1 bg-app rounded-lg px-3 py-2 text-sm focus:outline-none"
+                      />
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
+          )}
+
+          {/* Note */}
+          <div>
+            <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.note}</label>
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full bg-surface rounded-lg px-4 py-2.5 text-sm border border-line focus:border-accent focus:outline-none"
+            />
           </div>
-        )}
+        </div>
 
-        {/* Note */}
-        <Field label={ru.admin.move.note}>
-          <input
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-            className="w-full bg-white rounded-xl px-4 py-3 text-sm border border-slate-200 focus:border-sky-500 focus:outline-none"
-          />
-        </Field>
-      </div>
-
-      {/* Submit */}
-      <div className="fixed bottom-16 left-0 right-0 bg-white border-t border-slate-200 px-4 py-3 z-30">
-        <div className="max-w-lg mx-auto flex gap-3">
+        {/* Actions */}
+        <div className="flex gap-3 mt-5">
           <button
-            onClick={() => navigate('/admin')}
-            className="flex-1 bg-slate-100 text-slate-600 rounded-xl py-3 font-medium"
+            onClick={onClose}
+            className="flex-1 bg-app text-ink rounded-lg py-3 font-medium text-sm"
           >
             {ru.cleaning.cancel}
           </button>
           <button
             onClick={handlePost}
             disabled={posting || cart.length === 0}
-            className="flex-1 bg-sky-600 text-white rounded-xl py-3 font-medium disabled:opacity-40 flex items-center justify-center gap-2"
+            className="flex-1 bg-accent text-white rounded-lg py-3 font-medium text-sm disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
             {ru.admin.move.post}
           </button>
         </div>
       </div>
-    </div>
-  )
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <label className="block text-sm font-medium text-slate-700 mb-1.5">{label}</label>
-      {children}
-    </div>
+    </>
   )
 }

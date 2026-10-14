@@ -12,13 +12,13 @@ import {
   recalculateCleaning,
   upsertNormRule,
   deleteNormRule,
+  fetchWarehouseStock,
 } from '@/modules/admin/api'
-import { fetchWarehouseStock } from '@/modules/admin/api'
 import type { Apartment, ApartmentGapRow, NormRuleRow, CleaningEventRow, Staff, WarehouseStockRow, IssueMissingResult, NormType } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { formatDateTime, formatQty, cairoLocalToISO } from '@/lib/format'
 import { toast, errorMessage } from '@/lib/toast'
-import { ArrowLeft, ClipboardList, History, Plus, Trash2, CreditCard as Edit3, Gift, RotateCcw, X, Check, Loader as Loader2, TriangleAlert as AlertTriangle } from 'lucide-react'
+import { ClipboardList, History, Plus, Trash2, CreditCard as Edit3, Gift, RotateCcw, X, Check, Loader as Loader2 } from 'lucide-react'
 
 type Tab = 'norms' | 'history'
 
@@ -29,6 +29,20 @@ const normTypeLabels: Record<NormType, string> = {
 }
 
 const normTypeOrder: NormType[] = ['asset_standing', 'turnover_replenish', 'cleaning_consumption']
+
+function pctColor(p: number): string {
+  if (p >= 100) return 'var(--ok)'
+  if (p >= 75) return 'var(--warn)'
+  return 'var(--bad)'
+}
+
+function ProgressBar({ value, color }: { value: number; color: string }) {
+  return (
+    <span className="block h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
+      <span className="block h-full rounded-full" style={{ width: `${Math.min(value, 100)}%`, background: color }} />
+    </span>
+  )
+}
 
 export function AdminApartmentDetail() {
   const { id } = useParams<{ id: string }>()
@@ -46,7 +60,6 @@ export function AdminApartmentDetail() {
   const [issueResult, setIssueResult] = useState<IssueMissingResult | null>(null)
   const [issuing, setIssuing] = useState(false)
   const [editingNorm, setEditingNorm] = useState<NormRuleRow | null>(null)
-  const [addingNorm, setAddingNorm] = useState(false)
   const [reverseEventId, setReverseEventId] = useState<string | null>(null)
   const [reverseReason, setReverseReason] = useState('')
   const [recalcEventId, setRecalcEventId] = useState<string | null>(null)
@@ -133,13 +146,7 @@ export function AdminApartmentDetail() {
     }
   }
 
-  if (loading) {
-    return <div className="px-4 pt-8 text-center text-slate-400">{ru.app.loading}</div>
-  }
-
-  if (!apartment) {
-    return <div className="px-4 pt-8 text-center text-slate-400">Не найдено</div>
-  }
+  const close = () => navigate('/admin/apartments')
 
   const groupedOverrides = useMemo(() => {
     const map = new Map<NormType, NormRuleRow[]>()
@@ -161,213 +168,217 @@ export function AdminApartmentDetail() {
     return map
   }, [templateNorms])
 
-  return (
-    <div className="min-h-screen bg-slate-50">
-      {/* Header */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-30">
-        <div className="px-4 py-3 flex items-center gap-3">
-          <button onClick={() => navigate('/admin/apartments')} className="p-1 -ml-1">
-            <ArrowLeft className="w-5 h-5 text-slate-600" />
-          </button>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold text-slate-800">{apartment.code}</h1>
-            <p className="text-xs text-slate-500">{apartment.type}</p>
-          </div>
-        </div>
-        <div className="flex px-4 gap-1">
-          <TabButton active={tab === 'norms'} onClick={() => setTab('norms')} icon={ClipboardList} label={ru.admin.apartments.norms} />
-          <TabButton active={tab === 'history'} onClick={() => setTab('history')} icon={History} label={ru.admin.apartments.cleaningHistory} />
-        </div>
-      </div>
+  const totalNorms = gaps.length
+  const missingCount = gapItems.length
+  const completenessPct = totalNorms > 0 ? Math.round(((totalNorms - missingCount) / totalNorms) * 100) : 100
 
-      <div className="px-4 pt-4 pb-28">
-        {/* Gap section */}
-        {gapItems.length > 0 && (
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xs font-semibold text-amber-600 uppercase tracking-wider">{ru.admin.apartments.gap}</h3>
-              <button
-                onClick={handleIssueAll}
-                disabled={issuing}
-                className="bg-sky-600 text-white rounded-lg px-3 py-1.5 text-xs font-medium flex items-center gap-1.5 disabled:opacity-40"
-              >
-                {issuing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Gift className="w-3.5 h-3.5" />}
-                {ru.admin.apartments.issueAll}
+  return (
+    <>
+      <div className="fixed inset-0 bg-black/45 z-[60] anim-scrim" onClick={close} />
+      <aside className="fixed top-0 right-0 bottom-0 w-full max-w-[440px] bg-surface z-[61] overflow-auto border-l border-line anim-drawer">
+        {loading ? (
+          <div className="p-6 text-center text-muted text-sm">{ru.app.loading}</div>
+        ) : !apartment ? (
+          <div className="p-6 text-center text-muted text-sm">Не найдено</div>
+        ) : (
+          <div className="p-5 pb-8">
+            <div className="flex items-center justify-between mb-4">
+              <button onClick={close} className="bg-surface border border-line text-ink rounded-lg px-3 py-1.5 text-sm font-medium">
+                Закрыть
               </button>
             </div>
-            <div className="bg-white rounded-xl border border-slate-100 divide-y divide-slate-50">
-              {gapItems.map((g) => (
-                <div key={`${g.item_id}`} className="px-4 py-2.5 flex items-center justify-between">
-                  <span className="text-sm text-slate-700">{g.name}</span>
-                  <span className="text-sm text-amber-600">{g.gap} {ru.admin.dashboard.gap}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+            <h2 className="text-xl font-semibold text-ink m-0">{apartment.code}</h2>
+            <p className="text-muted text-sm">{apartment.type}</p>
 
-        {/* Issue result sheet */}
-        {issueResult && (
-          <div className="fixed inset-0 bg-black/40 z-50 flex flex-col justify-end">
-            <div className="bg-white rounded-t-2xl max-h-[70vh] overflow-y-auto">
-              <div className="flex justify-center pt-3 pb-1">
-                <div className="w-10 h-1 bg-slate-200 rounded-full" />
-              </div>
-              <div className="px-5 py-3 flex items-center justify-between border-b border-slate-100">
-                <h2 className="text-base font-semibold text-slate-800">{ru.admin.apartments.issueAll}</h2>
-                <button onClick={() => setIssueResult(null)} className="p-1">
-                  <X className="w-5 h-5 text-slate-400" />
-                </button>
-              </div>
-              <div className="px-5 py-4 space-y-4">
-                {issueResult.doc_number && (
-                  <p className="text-sm text-slate-500">Документ: {issueResult.doc_number}</p>
-                )}
-                {issueResult.issued.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-green-600 mb-2">{ru.admin.apartments.issued}</p>
-                    <div className="bg-green-50 rounded-xl border border-green-100 divide-y divide-green-50">
-                      {issueResult.issued.map((it) => (
-                        <div key={it.item_id} className="px-3 py-2 flex items-center justify-between">
-                          <span className="text-sm text-slate-700">{it.name}</span>
-                          <span className="text-sm text-green-600">{it.qty}</span>
-                        </div>
-                      ))}
+            {/* Completeness */}
+            <div className="font-semibold text-sm text-ink mt-4 mb-2">{ru.admin.apartments.completeness} {completenessPct}%</div>
+            <ProgressBar value={completenessPct} color={pctColor(completenessPct)} />
+
+            {/* Gap list + issue all */}
+            <div className="font-semibold text-sm text-ink mt-4 mb-2">{ru.admin.apartments.gap}</div>
+            {gapItems.length > 0 ? (
+              <>
+                <div className="bg-surface border border-line rounded-lg divide-y divide-[var(--line)]">
+                  {gapItems.map((g) => (
+                    <div key={`${g.item_id}`} className="px-3 py-2.5 flex items-center justify-between">
+                      <span className="text-sm text-ink">{g.name}</span>
+                      <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-bad-soft text-bad">−{g.gap}</span>
                     </div>
-                  </div>
-                )}
-                {issueResult.short.length > 0 && (
-                  <div>
-                    <p className="text-sm font-medium text-red-500 mb-2">{ru.admin.apartments.short}</p>
-                    <div className="bg-red-50 rounded-xl border border-red-100 divide-y divide-red-50">
-                      {issueResult.short.map((it) => (
-                        <div key={it.item_id} className="px-3 py-2 flex items-center justify-between">
-                          <span className="text-sm text-slate-700">{it.name}</span>
-                          <span className="text-sm text-red-500">{it.issued}/{it.need}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-              <div className="sticky bottom-0 bg-white border-t border-slate-100 px-5 py-3">
-                <button onClick={() => setIssueResult(null)} className="w-full bg-slate-100 text-slate-600 rounded-xl py-3 font-medium">
-                  OK
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Norms tab */}
-        {tab === 'norms' && (
-          <div className="space-y-5">
-            {/* Overrides */}
-            {normTypeOrder.map((nt) => {
-              const overrides = groupedOverrides.get(nt) ?? []
-              const templates = groupedTemplates.get(nt) ?? []
-              const hasOverrides = overrides.length > 0
-              if (overrides.length === 0 && templates.length === 0) return null
-              return (
-                <div key={nt}>
-                  <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-                      {normTypeLabels[nt]}
-                    </h3>
-                    <button
-                      onClick={() => { setAddingNorm(true); setEditingNorm({ id: 0, norm_type: nt, apt_type: null, apartment_id: aptId, item_id: 0, qty: 1, note: null }) }}
-                      className="text-sky-600 text-xs flex items-center gap-1"
-                    >
-                      <Plus className="w-3 h-3" /> {ru.admin.apartments.addNorm}
-                    </button>
-                  </div>
-                  <div className="bg-white rounded-xl border border-slate-100 divide-y divide-slate-50">
-                    {hasOverrides ? (
-                      overrides.map((n) => (
-                        <div key={n.id} className="px-4 py-2.5 flex items-center justify-between">
-                          <div className="min-w-0">
-                            <span className="text-sm text-slate-700">{stock.find((s) => s.item_id === n.item_id)?.name ?? `#${n.item_id}`}</span>
-                            {n.note && <span className="text-xs text-slate-400 block">{n.note}</span>}
-                          </div>
-                          <div className="flex items-center gap-2 shrink-0">
-                            <span className="text-sm text-slate-500">{n.qty}</span>
-                            <button onClick={() => setEditingNorm(n)} className="text-slate-400 hover:text-sky-600">
-                              <Edit3 className="w-3.5 h-3.5" />
-                            </button>
-                            <button onClick={async () => { await deleteNormRule(n.id); loadAll() }} className="text-slate-400 hover:text-red-500">
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      templates.map((n) => (
-                        <div key={n.id} className="px-4 py-2.5 flex items-center justify-between opacity-60">
-                          <span className="text-sm text-slate-600">{stock.find((s) => s.item_id === n.item_id)?.name ?? `#${n.item_id}`}</span>
-                          <span className="text-sm text-slate-400">{n.qty} ({ru.admin.apartments.template})</span>
-                        </div>
-                      ))
-                    )}
-                  </div>
+                  ))}
                 </div>
-              )
-            })}
-          </div>
-        )}
-
-        {/* History tab */}
-        {tab === 'history' && (
-          <div className="space-y-3">
-            {events.length === 0 ? (
-              <p className="text-sm text-slate-400 text-center mt-8">{ru.admin.apartments.noCleaning}</p>
+                <button
+                  onClick={handleIssueAll}
+                  disabled={issuing}
+                  className="mt-3 bg-accent text-white rounded-lg px-3.5 py-2 text-sm font-medium flex items-center gap-1.5 disabled:opacity-40"
+                >
+                  {issuing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Gift className="w-3.5 h-3.5" />}
+                  {ru.admin.apartments.issueAll}
+                </button>
+              </>
             ) : (
-              events.map((ev) => (
-                <div key={ev.id} className="bg-white rounded-xl border border-slate-100 px-4 py-3">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium text-slate-800">{formatDateTime(ev.cleaned_at)}</span>
-                    <span className={`text-xs px-2 py-0.5 rounded-full ${ev.status === 'done' ? 'bg-green-50 text-green-600' : 'bg-red-50 text-red-600'}`}>
-                      {ev.status === 'done' ? ru.admin.apartments.done : ru.admin.apartments.reversed}
-                    </span>
-                  </div>
-                  {ev.cleaning_event_staff && ev.cleaning_event_staff.length > 0 && (
-                    <p className="text-xs text-slate-500">
-                      {ev.cleaning_event_staff.map((s, i) => (
-                        <span key={s.staff_id}>
-                          {i > 0 && ', '}
-                          {s.staff.full_name}
-                          {s.staff_id === ev.lead_staff_id && ` ${ru.admin.apartments.recalcLead}`}
-                        </span>
-                      ))}
-                    </p>
-                  )}
-                  <p className="text-xs text-slate-400 mt-0.5">{ru.admin.apartments.revision}: {ev.revision}</p>
-                  {ev.note && <p className="text-xs text-slate-400 mt-1">{ev.note}</p>}
-                  {ev.status === 'reversed' && ev.reverse_reason && (
-                    <p className="text-xs text-red-400 mt-1">{ev.reverse_reason}</p>
-                  )}
-                  {ev.status === 'done' && (
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => { setRecalcEventId(ev.id); setRecalcDate(''); setRecalcStaffIds([]) }}
-                        className="text-xs bg-slate-100 text-slate-600 rounded-lg px-3 py-1.5 flex items-center gap-1"
-                      >
-                        <RotateCcw className="w-3 h-3" />
-                        {ru.admin.apartments.recalculate}
-                      </button>
-                      <button
-                        onClick={() => setReverseEventId(ev.id)}
-                        className="text-xs bg-red-50 text-red-600 rounded-lg px-3 py-1.5"
-                      >
-                        {ru.admin.apartments.reverse}
-                      </button>
+              <p className="text-muted text-sm">Квартира укомплектована по норме.</p>
+            )}
+
+            {/* Tabs */}
+            <div className="flex gap-1 mt-5 border-b border-line">
+              <TabButton active={tab === 'norms'} onClick={() => setTab('norms')} icon={ClipboardList} label={ru.admin.apartments.norms} />
+              <TabButton active={tab === 'history'} onClick={() => setTab('history')} icon={History} label={ru.admin.apartments.cleaningHistory} />
+            </div>
+
+            {/* Norms tab */}
+            {tab === 'norms' && (
+              <div className="mt-4 space-y-5">
+                {normTypeOrder.map((nt) => {
+                  const overrides = groupedOverrides.get(nt) ?? []
+                  const templates = groupedTemplates.get(nt) ?? []
+                  if (overrides.length === 0 && templates.length === 0) return null
+                  return (
+                    <div key={nt}>
+                      <div className="flex items-center justify-between mb-2">
+                        <h3 className="text-xs font-semibold text-muted uppercase tracking-wider">{normTypeLabels[nt]}</h3>
+                        <button
+                          onClick={() => { setEditingNorm({ id: 0, norm_type: nt, apt_type: null, apartment_id: aptId, item_id: 0, qty: 1, note: null }) }}
+                          className="text-accent text-xs flex items-center gap-1"
+                        >
+                          <Plus className="w-3 h-3" /> {ru.admin.apartments.addNorm}
+                        </button>
+                      </div>
+                      <div className="bg-surface border border-line rounded-lg divide-y divide-[var(--line)]">
+                        {overrides.length > 0 ? (
+                          overrides.map((n) => (
+                            <div key={n.id} className="px-3 py-2.5 flex items-center justify-between">
+                              <div className="min-w-0">
+                                <span className="text-sm text-ink">{stock.find((s) => s.item_id === n.item_id)?.name ?? `#${n.item_id}`}</span>
+                                {n.note && <span className="text-xs text-muted block">{n.note}</span>}
+                              </div>
+                              <div className="flex items-center gap-2 shrink-0">
+                                <span className="text-sm text-muted">{n.qty}</span>
+                                <button onClick={() => setEditingNorm(n)} className="text-muted hover:text-accent">
+                                  <Edit3 className="w-3.5 h-3.5" />
+                                </button>
+                                <button onClick={async () => { await deleteNormRule(n.id); loadAll() }} className="text-muted hover:text-bad">
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </button>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          templates.map((n) => (
+                            <div key={n.id} className="px-3 py-2.5 flex items-center justify-between opacity-60">
+                              <span className="text-sm text-ink">{stock.find((s) => s.item_id === n.item_id)?.name ?? `#${n.item_id}`}</span>
+                              <span className="text-sm text-muted">{n.qty} ({ru.admin.apartments.template})</span>
+                            </div>
+                          ))
+                        )}
+                      </div>
                     </div>
-                  )}
-                </div>
-              ))
+                  )
+                })}
+              </div>
+            )}
+
+            {/* History tab */}
+            {tab === 'history' && (
+              <div className="mt-4 space-y-3">
+                {events.length === 0 ? (
+                  <p className="text-sm text-muted text-center mt-6">{ru.admin.apartments.noCleaning}</p>
+                ) : (
+                  events.map((ev) => (
+                    <div key={ev.id} className="bg-surface border border-line rounded-lg px-4 py-3">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium text-ink">{formatDateTime(ev.cleaned_at)}</span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${ev.status === 'done' ? 'bg-ok-soft text-ok' : 'bg-bad-soft text-bad'}`}>
+                          {ev.status === 'done' ? ru.admin.apartments.done : ru.admin.apartments.reversed}
+                        </span>
+                      </div>
+                      {ev.cleaning_event_staff && ev.cleaning_event_staff.length > 0 && (
+                        <p className="text-xs text-muted">
+                          {ev.cleaning_event_staff.map((s, i) => (
+                            <span key={s.staff_id}>
+                              {i > 0 && ', '}
+                              {s.staff.full_name}
+                              {s.staff_id === ev.lead_staff_id && ` ${ru.admin.apartments.recalcLead}`}
+                            </span>
+                          ))}
+                        </p>
+                      )}
+                      <p className="text-xs text-muted mt-0.5">{ru.admin.apartments.revision}: {ev.revision}</p>
+                      {ev.note && <p className="text-xs text-muted mt-1">{ev.note}</p>}
+                      {ev.status === 'reversed' && ev.reverse_reason && (
+                        <p className="text-xs text-bad mt-1">{ev.reverse_reason}</p>
+                      )}
+                      {ev.status === 'done' && (
+                        <div className="flex gap-2 mt-2">
+                          <button
+                            onClick={() => { setRecalcEventId(ev.id); setRecalcDate(''); setRecalcStaffIds([]) }}
+                            className="text-xs bg-app text-ink rounded-lg px-3 py-1.5 flex items-center gap-1"
+                          >
+                            <RotateCcw className="w-3 h-3" />
+                            {ru.admin.apartments.recalculate}
+                          </button>
+                          <button
+                            onClick={() => setReverseEventId(ev.id)}
+                            className="text-xs bg-bad-soft text-bad rounded-lg px-3 py-1.5"
+                          >
+                            {ru.admin.apartments.reverse}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))
+                )}
+              </div>
             )}
           </div>
         )}
-      </div>
+      </aside>
+
+      {/* Issue result sheet */}
+      {issueResult && (
+        <>
+          <div className="fixed inset-0 bg-black/50 z-[70]" onClick={() => setIssueResult(null)} />
+          <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] bg-surface rounded-2xl w-full max-w-sm p-5 border border-line max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:translate-x-0 max-md:translate-y-0 max-md:w-full max-md:rounded-t-2xl max-md:rounded-b-none max-md:anim-sheet">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-base font-semibold text-ink">{ru.admin.apartments.issueAll}</h2>
+              <button onClick={() => setIssueResult(null)} className="p-1">
+                <X className="w-5 h-5 text-muted" />
+              </button>
+            </div>
+            {issueResult.doc_number && (
+              <p className="text-sm text-muted mb-3">Документ: {issueResult.doc_number}</p>
+            )}
+            {issueResult.issued.length > 0 && (
+              <div className="mb-3">
+                <p className="text-sm font-medium text-ok mb-2">{ru.admin.apartments.issued}</p>
+                <div className="bg-ok-soft rounded-lg border border-line divide-y divide-[var(--line)]">
+                  {issueResult.issued.map((it) => (
+                    <div key={it.item_id} className="px-3 py-2 flex items-center justify-between">
+                      <span className="text-sm text-ink">{it.name}</span>
+                      <span className="text-sm text-ok">{it.qty}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            {issueResult.short.length > 0 && (
+              <div className="mb-4">
+                <p className="text-sm font-medium text-bad mb-2">{ru.admin.apartments.short}</p>
+                <div className="bg-bad-soft rounded-lg border border-line divide-y divide-[var(--line)]">
+                  {issueResult.short.map((it) => (
+                    <div key={it.item_id} className="px-3 py-2 flex items-center justify-between">
+                      <span className="text-sm text-ink">{it.name}</span>
+                      <span className="text-sm text-bad">{it.issued}/{it.need}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+            <button onClick={() => setIssueResult(null)} className="w-full bg-app text-ink rounded-lg py-3 font-medium text-sm">
+              OK
+            </button>
+          </div>
+        </>
+      )}
 
       {/* Reverse modal */}
       {reverseEventId && (
@@ -376,13 +387,13 @@ export function AdminApartmentDetail() {
             value={reverseReason}
             onChange={(e) => setReverseReason(e.target.value)}
             placeholder={ru.admin.apartments.reverseReason}
-            className="w-full bg-slate-100 rounded-xl px-4 py-3 text-sm focus:outline-none mb-4"
+            className="w-full bg-app rounded-lg px-4 py-3 text-sm focus:outline-none mb-4"
           />
           <div className="flex gap-3">
-            <button onClick={() => setReverseEventId(null)} className="flex-1 bg-slate-100 text-slate-600 rounded-xl py-3 font-medium">
+            <button onClick={() => setReverseEventId(null)} className="flex-1 bg-app text-ink rounded-lg py-3 font-medium text-sm">
               {ru.cleaning.cancel}
             </button>
-            <button onClick={handleReverse} className="flex-1 bg-red-600 text-white rounded-xl py-3 font-medium">
+            <button onClick={handleReverse} className="flex-1 bg-bad text-white rounded-lg py-3 font-medium text-sm">
               {ru.admin.apartments.reverse}
             </button>
           </div>
@@ -394,19 +405,19 @@ export function AdminApartmentDetail() {
         <Modal title={ru.admin.apartments.recalcConfirm} onClose={() => { setRecalcEventId(null); setRecalcDate(''); setRecalcStaffIds([]) }}>
           <div className="space-y-3 mb-4">
             <div>
-              <label className="block text-sm text-slate-600 mb-1">{ru.admin.apartments.recalcDate}</label>
+              <label className="block text-sm text-muted mb-1">{ru.admin.apartments.recalcDate}</label>
               <input
                 type="datetime-local"
                 value={recalcDate}
                 onChange={(e) => setRecalcDate(e.target.value)}
-                className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none"
+                className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none"
               />
             </div>
             <div>
-              <label className="block text-sm text-slate-600 mb-1">{ru.admin.apartments.recalcStaff}</label>
+              <label className="block text-sm text-muted mb-1">{ru.admin.apartments.recalcStaff}</label>
               <div className="space-y-1.5 max-h-40 overflow-y-auto">
                 {staffList.filter((s) => s.active).map((s) => (
-                  <label key={s.id} className="flex items-center gap-2 px-3 py-1.5 bg-slate-50 rounded-lg cursor-pointer">
+                  <label key={s.id} className="flex items-center gap-2 px-3 py-1.5 bg-app rounded-lg cursor-pointer">
                     <input
                       type="checkbox"
                       checked={recalcStaffIds.includes(s.id)}
@@ -417,9 +428,9 @@ export function AdminApartmentDetail() {
                           setRecalcStaffIds((prev) => prev.filter((id) => id !== s.id))
                         }
                       }}
-                      className="w-4 h-4 accent-sky-600"
+                      className="w-4 h-4 accent-[var(--accent)]"
                     />
-                    <span className="text-sm text-slate-700">
+                    <span className="text-sm text-ink">
                       {s.full_name}
                       {recalcStaffIds[0] === s.id && ` ${ru.admin.apartments.recalcLead}`}
                     </span>
@@ -429,10 +440,10 @@ export function AdminApartmentDetail() {
             </div>
           </div>
           <div className="flex gap-3">
-            <button onClick={() => { setRecalcEventId(null); setRecalcDate(''); setRecalcStaffIds([]) }} className="flex-1 bg-slate-100 text-slate-600 rounded-xl py-3 font-medium">
+            <button onClick={() => { setRecalcEventId(null); setRecalcDate(''); setRecalcStaffIds([]) }} className="flex-1 bg-app text-ink rounded-lg py-3 font-medium text-sm">
               {ru.cleaning.cancel}
             </button>
-            <button onClick={handleRecalc} className="flex-1 bg-sky-600 text-white rounded-xl py-3 font-medium">
+            <button onClick={handleRecalc} className="flex-1 bg-accent text-white rounded-lg py-3 font-medium text-sm">
               {ru.admin.apartments.recalculate}
             </button>
           </div>
@@ -444,7 +455,7 @@ export function AdminApartmentDetail() {
         <NormEditor
           norm={editingNorm}
           items={stock}
-          onClose={() => { setEditingNorm(null); setAddingNorm(false) }}
+          onClose={() => setEditingNorm(null)}
           onSave={async (normType, itemId, qty, note) => {
             try {
               await upsertNormRule({
@@ -457,7 +468,6 @@ export function AdminApartmentDetail() {
                 note: note ?? null,
               })
               setEditingNorm(null)
-              setAddingNorm(false)
               loadAll()
             } catch (e) {
               toast(errorMessage(e), 'error')
@@ -465,7 +475,7 @@ export function AdminApartmentDetail() {
           }}
         />
       )}
-    </div>
+    </>
   )
 }
 
@@ -473,7 +483,7 @@ function TabButton({ active, onClick, icon: Icon, label }: { active: boolean; on
   return (
     <button
       onClick={onClick}
-      className={`flex items-center gap-1.5 px-3 py-2.5 text-sm border-b-2 transition-colors ${active ? 'border-sky-600 text-sky-600 font-medium' : 'border-transparent text-slate-400'}`}
+      className={`flex items-center gap-1.5 px-3 py-2.5 text-sm border-b-2 transition-colors ${active ? 'border-accent text-accent font-medium' : 'border-transparent text-muted'}`}
     >
       <Icon className="w-4 h-4" />
       {label}
@@ -483,12 +493,13 @@ function TabButton({ active, onClick, icon: Icon, label }: { active: boolean; on
 
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
-      <div className="bg-white rounded-2xl w-full max-w-sm p-5">
-        <h3 className="text-base font-semibold text-slate-800 mb-4">{title}</h3>
+    <>
+      <div className="fixed inset-0 bg-black/50 z-[70]" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
+        <h3 className="text-base font-semibold text-ink mb-4">{title}</h3>
         {children}
       </div>
-    </div>
+    </>
   )
 }
 
@@ -509,47 +520,48 @@ function NormEditor({
   const [note, setNote] = useState(norm.note ?? '')
 
   return (
-    <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
-      <div className="bg-white rounded-2xl w-full max-w-sm p-5">
+    <>
+      <div className="fixed inset-0 bg-black/50 z-[70]" onClick={onClose} />
+      <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[71] bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-slate-800">{norm.id ? ru.admin.apartments.editNorm : ru.admin.apartments.addNorm}</h3>
-          <button onClick={onClose}><X className="w-5 h-5 text-slate-400" /></button>
+          <h3 className="text-base font-semibold text-ink">{norm.id ? ru.admin.apartments.editNorm : ru.admin.apartments.addNorm}</h3>
+          <button onClick={onClose}><X className="w-5 h-5 text-muted" /></button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm text-slate-600 mb-1">{ru.incidents.kind}</label>
-            <select value={normType} onChange={(e) => setNormType(e.target.value as NormType)} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
+            <label className="block text-sm text-muted mb-1">{ru.incidents.kind}</label>
+            <select value={normType} onChange={(e) => setNormType(e.target.value as NormType)} className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none">
               {normTypeOrder.map((nt) => <option key={nt} value={nt}>{normTypeLabels[nt]}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">{ru.admin.apartments.item}</label>
-            <select value={itemId} onChange={(e) => setItemId(Number(e.target.value))} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
+            <label className="block text-sm text-muted mb-1">{ru.admin.apartments.item}</label>
+            <select value={itemId} onChange={(e) => setItemId(Number(e.target.value))} className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none">
               <option value="0">—</option>
               {items.map((i) => <option key={i.item_id} value={i.item_id}>{i.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">{ru.admin.apartments.qty}</label>
-            <input type="number" min="0" step="0.001" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+            <label className="block text-sm text-muted mb-1">{ru.admin.apartments.qty}</label>
+            <input type="number" min="0" step="0.001" value={qty} onChange={(e) => setQty(e.target.value)} className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           <div>
-            <label className="block text-sm text-slate-600 mb-1">{ru.admin.move.note}</label>
-            <input value={note} onChange={(e) => setNote(e.target.value)} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
+            <label className="block text-sm text-muted mb-1">{ru.admin.move.note}</label>
+            <input value={note} onChange={(e) => setNote(e.target.value)} className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none" />
           </div>
         </div>
         <div className="flex gap-3 mt-4">
-          <button onClick={onClose} className="flex-1 bg-slate-100 text-slate-600 rounded-xl py-3 font-medium">{ru.cleaning.cancel}</button>
+          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-lg py-3 font-medium text-sm">{ru.cleaning.cancel}</button>
           <button
             onClick={() => onSave(normType, itemId, Number(qty), note.trim() || null)}
             disabled={!itemId || !qty}
-            className="flex-1 bg-sky-600 text-white rounded-xl py-3 font-medium disabled:opacity-40 flex items-center justify-center gap-2"
+            className="flex-1 bg-accent text-white rounded-lg py-3 font-medium text-sm disabled:opacity-40 flex items-center justify-center gap-2"
           >
             <Check className="w-4 h-4" />
             {ru.admin.apartments.save}
           </button>
         </div>
       </div>
-    </div>
+    </>
   )
 }

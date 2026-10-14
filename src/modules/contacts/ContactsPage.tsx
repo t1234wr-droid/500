@@ -9,10 +9,7 @@ export function ContactsPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    fetchContacts()
-      .then(setContacts)
-      .catch(() => {})
-      .finally(() => setLoading(false))
+    fetchContacts().then(setContacts).catch(() => {}).finally(() => setLoading(false))
   }, [])
 
   const grouped = useMemo(() => {
@@ -28,12 +25,11 @@ export function ContactsPage() {
 
   return (
     <div className="px-4 pt-6 pb-28">
-      <h1 className="text-xl font-semibold text-slate-800 mb-4">{ru.contacts.title}</h1>
-
+      <h1 className="text-xl font-semibold text-ink mb-4">{ru.contacts.title}</h1>
       {loading ? (
-        <p className="text-center text-slate-400 mt-8">{ru.app.loading}</p>
+        <p className="text-center text-muted mt-8">{ru.app.loading}</p>
       ) : contacts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center mt-16 text-slate-400">
+        <div className="flex flex-col items-center justify-center mt-16 text-muted">
           <Phone className="w-10 h-10 mb-3" />
           <p className="text-sm">{ru.contacts.noContacts}</p>
         </div>
@@ -41,38 +37,27 @@ export function ContactsPage() {
         <div className="space-y-5">
           {grouped.map(([group, list]) => (
             <div key={group}>
-              <h2 className="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-2 px-1">
-                {group}
-              </h2>
+              <h2 className="text-xs font-semibold text-muted uppercase tracking-wider mb-2 px-1">{group}</h2>
               <div className="space-y-2">
                 {list.map((c) => (
-                  <div key={c.id} className="bg-white rounded-xl border border-slate-100 px-4 py-3">
+                  <div key={c.id} className="bg-surface rounded-xl border border-line px-4 py-3">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="w-9 h-9 bg-slate-100 rounded-lg flex items-center justify-center shrink-0">
-                        <User className="w-4 h-4 text-slate-500" />
+                      <div className="w-9 h-9 bg-app rounded-lg flex items-center justify-center shrink-0">
+                        <User className="w-4 h-4 text-muted" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium text-slate-800">{c.name}</p>
-                        {c.role_title && (
-                          <p className="text-xs text-slate-400">{c.role_title}</p>
-                        )}
+                        <p className="text-sm font-medium text-ink">{c.name}</p>
+                        {c.role_title && <p className="text-xs text-muted">{c.role_title}</p>}
                       </div>
                     </div>
                     <div className="flex gap-2 ml-12">
-                      <a
-                        href={`tel:${c.phone_e164}`}
-                        className="flex items-center gap-1.5 bg-sky-50 text-sky-700 rounded-lg px-3 py-1.5 text-xs font-medium"
-                      >
+                      <a href={`tel:${c.phone_e164}`} className="flex items-center gap-1.5 bg-accent-soft text-accent rounded-lg px-3 py-1.5 text-xs font-medium">
                         <Phone className="w-3.5 h-3.5" />
                         {ru.contacts.call}
                       </a>
                       {c.has_whatsapp && (
-                        <a
-                          href={`https://wa.me/${c.phone_e164.replace('+', '')}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 bg-green-50 text-green-700 rounded-lg px-3 py-1.5 text-xs font-medium"
-                        >
+                        <a href={`https://wa.me/${c.phone_e164.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 bg-ok-soft text-ok rounded-lg px-3 py-1.5 text-xs font-medium">
                           <MessageCircle className="w-3.5 h-3.5" />
                           {ru.contacts.whatsapp}
                         </a>
