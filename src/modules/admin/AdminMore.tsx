@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { ru } from '@/i18n/ru'
-import { Users, Wrench, Phone, ExternalLink, UserCircle, ChevronRight, ClipboardList } from 'lucide-react'
+import { Users, Wrench, Phone, ExternalLink, UserCircle, ChevronRight, ClipboardList, FolderTree } from 'lucide-react'
 import { useAuth } from '@/modules/core/store'
 
 export function AdminMore() {
@@ -9,6 +9,7 @@ export function AdminMore() {
   const profile = useAuth((s) => s.profile)
 
   const items = [
+    { icon: FolderTree, label: ru.admin.more.catalog, path: '/admin/more/catalog' },
     { icon: UserCircle, label: ru.admin.more.staff, path: '/admin/more/staff' },
     { icon: Users, label: ru.admin.more.users, path: '/admin/more/users' },
     { icon: Wrench, label: ru.admin.more.incidents, path: '/admin/more/incidents' },

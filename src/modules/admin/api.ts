@@ -13,6 +13,10 @@ import type {
   Staff,
   Contact,
   Incident,
+  Category,
+  Item,
+  ItemKind,
+  BaseUnit,
 } from '@/lib/database.types'
 
 // ---- Queries ----
@@ -313,5 +317,67 @@ export async function upsertNormRule(params: {
 
 export async function deleteNormRule(id: number): Promise<void> {
   const { error } = await supabase.from('norm_rules').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// ---- Categories CRUD (admin_all policy) ----
+
+export async function fetchCategories(): Promise<Category[]> {
+  const { data, error } = await supabase
+    .from('categories')
+    .select('id,name,kind,sort')
+    .order('sort')
+    .order('name')
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+export async function createCategory(name: string, kind: ItemKind, sort: number): Promise<void> {
+  const { error } = await supabase.from('categories').insert({ name, kind, sort })
+  if (error) throw new Error(error.message)
+}
+
+export async function updateCategory(id: number, patch: Partial<Pick<Category, 'name' | 'kind' | 'sort'>>): Promise<void> {
+  const { error } = await supabase.from('categories').update(patch).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteCategory(id: number): Promise<void> {
+  const { error } = await supabase.from('categories').delete().eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+// ---- Items CRUD (admin_all policy) ----
+
+export async function fetchItems(): Promise<Item[]> {
+  const { data, error } = await supabase
+    .from('items')
+    .select('id,category_id,name,base_unit,pack_size,pack_label,min_stock,track_on_hand,qr_code,photo_path,active,sort')
+    .order('sort')
+    .order('name')
+  if (error) throw new Error(error.message)
+  return data ?? []
+}
+
+export async function createItem(params: {
+  category_id: number
+  name: string
+  base_unit: BaseUnit
+  pack_size: number
+  pack_label: string
+  min_stock: number | null
+  track_on_hand: boolean
+}): Promise<void> {
+  const { error } = await supabase.from('items').insert({ ...params, active: true, sort: 0 })
+  if (error) throw new Error(error.message)
+}
+
+export async function updateItem(id: number, patch: Partial<Pick<Item, 'name' | 'category_id' | 'base_unit' | 'pack_size' | 'pack_label' | 'min_stock' | 'track_on_hand' | 'active'>>): Promise<void> {
+  const { error } = await supabase.from('items').update(patch).eq('id', id)
+  if (error) throw new Error(error.message)
+}
+
+export async function deleteItem(id: number): Promise<void> {
+  const { error } = await supabase.from('items').delete().eq('id', id)
   if (error) throw new Error(error.message)
 }

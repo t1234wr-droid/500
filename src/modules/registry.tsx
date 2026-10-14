@@ -25,6 +25,7 @@ const UsersPage = lazy(() => import('@/modules/admin/UsersPage').then(m => ({ de
 const AdminIncidents = lazy(() => import('@/modules/admin/AdminIncidents').then(m => ({ default: m.AdminIncidents })))
 const AdminContacts = lazy(() => import('@/modules/admin/AdminContacts').then(m => ({ default: m.AdminContacts })))
 const NormTemplatesPage = lazy(() => import('@/modules/admin/NormTemplatesPage').then(m => ({ default: m.NormTemplatesPage })))
+const CatalogPage = lazy(() => import('@/modules/admin/CatalogPage').then(m => ({ default: m.CatalogPage })))
 
 function Loading() {
   return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
@@ -69,6 +70,7 @@ export function AdminRoutes() {
           <Route path="more/incidents" element={<AdminIncidents />} />
           <Route path="more/contacts" element={<AdminContacts />} />
           <Route path="more/norm-templates" element={<NormTemplatesPage />} />
+          <Route path="more/catalog" element={<CatalogPage />} />
           <Route path="*" element={<Navigate to="/admin" replace />} />
         </Routes>
       </Suspense>
