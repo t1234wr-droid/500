@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchWarehouseStock, fetchApartmentsAdmin, fetchAllStaff, postMove } from '@/modules/admin/api'
 import type { WarehouseStockRow, Apartment, Staff } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { formatQty } from '@/lib/format'
 import { toast, errorMessage } from '@/lib/toast'
 import { Plus, Minus, Trash2, Loader as Loader2, Check, X } from 'lucide-react'
@@ -14,16 +14,6 @@ interface MoveOpDef {
   needsCost: boolean
 }
 
-const ops: MoveOpDef[] = [
-  { op: 'receipt', label: ru.admin.move.receipt, needsApartment: false, needsStaff: false, needsCost: true },
-  { op: 'issue_apartment', label: ru.admin.move.issueApt, needsApartment: true, needsStaff: false, needsCost: false },
-  { op: 'return_apartment', label: ru.admin.move.returnApt, needsApartment: true, needsStaff: false, needsCost: false },
-  { op: 'writeoff_apartment', label: ru.admin.move.writeoffApt, needsApartment: true, needsStaff: false, needsCost: false },
-  { op: 'writeoff_warehouse', label: ru.admin.move.writeoffWh, needsApartment: false, needsStaff: false, needsCost: false },
-  { op: 'issue_holder', label: ru.admin.move.issueHolder, needsApartment: false, needsStaff: true, needsCost: false },
-  { op: 'return_holder', label: ru.admin.move.returnHolder, needsApartment: false, needsStaff: true, needsCost: false },
-  { op: 'writeoff_holder', label: ru.admin.move.writeoffHolder, needsApartment: false, needsStaff: true, needsCost: false },
-]
 
 interface CartLine {
   itemId: number
@@ -33,6 +23,17 @@ interface CartLine {
 }
 
 export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: () => void }) {
+  const { t, n } = useI18n()
+  const ops: MoveOpDef[] = [
+    { op: 'receipt', label: t.admin.move.receipt, needsApartment: false, needsStaff: false, needsCost: true },
+    { op: 'issue_apartment', label: t.admin.move.issueApt, needsApartment: true, needsStaff: false, needsCost: false },
+    { op: 'return_apartment', label: t.admin.move.returnApt, needsApartment: true, needsStaff: false, needsCost: false },
+    { op: 'writeoff_apartment', label: t.admin.move.writeoffApt, needsApartment: true, needsStaff: false, needsCost: false },
+    { op: 'writeoff_warehouse', label: t.admin.move.writeoffWh, needsApartment: false, needsStaff: false, needsCost: false },
+    { op: 'issue_holder', label: t.admin.move.issueHolder, needsApartment: false, needsStaff: true, needsCost: false },
+    { op: 'return_holder', label: t.admin.move.returnHolder, needsApartment: false, needsStaff: true, needsCost: false },
+    { op: 'writeoff_holder', label: t.admin.move.writeoffHolder, needsApartment: false, needsStaff: true, needsCost: false },
+  ]
   const [stock, setStock] = useState<WarehouseStockRow[]>([])
   const [apartments, setApartments] = useState<Apartment[]>([])
   const [staffList, setStaffList] = useState<Staff[]>([])
@@ -79,15 +80,15 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
 
   const handlePost = async () => {
     if (cart.length === 0) {
-      toast(ru.admin.move.empty, 'error')
+      toast(t.admin.move.empty, 'error')
       return
     }
     if (opDef.needsApartment && !apartmentId) {
-      toast(ru.admin.move.apartment, 'error')
+      toast(t.admin.move.apartment, 'error')
       return
     }
     if (opDef.needsStaff && !staffId) {
-      toast(ru.admin.move.staff, 'error')
+      toast(t.admin.move.staff, 'error')
       return
     }
     setPosting(true)
@@ -105,7 +106,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
           note: note.trim() || null,
         })
       }
-      toast(ru.admin.move.success, 'success')
+      toast(t.admin.move.success, 'success')
       onDone()
     } catch (e) {
       toast(errorMessage(e), 'error')
@@ -119,7 +120,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
       <>
         <div className="fixed inset-0 bg-black/45 z-[60] anim-scrim" onClick={onClose} />
         <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-[61] bg-surface rounded-2xl p-6 max-w-sm w-full">
-          <div className="text-center text-muted text-sm">{ru.app.loading}</div>
+          <div className="text-center text-muted text-sm">{t.app.loading}</div>
         </div>
       </>
     )
@@ -130,7 +131,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
       <div className="fixed inset-0 bg-black/45 z-[60] anim-scrim" onClick={onClose} />
       <div className="fixed z-[61] left-1/2 top-1/2 -translate-x-1/2 w-full max-w-sm max-h-[90vh] overflow-auto bg-surface rounded-2xl p-5 border border-line max-md:bottom-0 max-md:left-0 max-md:top-auto max-md:translate-x-0 max-md:translate-y-0 max-md:w-full max-md:rounded-t-2xl max-md:rounded-b-none max-md:anim-sheet max-md:max-h-[85vh]">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-base font-semibold text-ink">{ru.admin.move.title}</h2>
+          <h2 className="text-base font-semibold text-ink">{t.admin.move.title}</h2>
           <button onClick={onClose} className="p-1">
             <X className="w-5 h-5 text-muted" />
           </button>
@@ -139,7 +140,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
         <div className="space-y-4">
           {/* Operation type */}
           <div>
-            <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.operation}</label>
+            <label className="block text-sm font-medium text-ink mb-1.5">{t.admin.move.operation}</label>
             <div className="flex gap-2 flex-wrap">
               {ops.map((o) => (
                 <button
@@ -158,7 +159,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
           {/* Apartment */}
           {opDef.needsApartment && (
             <div>
-              <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.apartment}</label>
+              <label className="block text-sm font-medium text-ink mb-1.5">{t.admin.move.apartment}</label>
               <select
                 value={apartmentId ?? ''}
                 onChange={(e) => setApartmentId(e.target.value ? Number(e.target.value) : null)}
@@ -175,7 +176,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
           {/* Staff */}
           {opDef.needsStaff && (
             <div>
-              <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.staff}</label>
+              <label className="block text-sm font-medium text-ink mb-1.5">{t.admin.move.staff}</label>
               <select
                 value={staffId ?? ''}
                 onChange={(e) => setStaffId(e.target.value ? Number(e.target.value) : null)}
@@ -191,11 +192,11 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
 
           {/* Item search */}
           <div>
-            <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.items}</label>
+            <label className="block text-sm font-medium text-ink mb-1.5">{t.admin.move.items}</label>
             <input
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder={ru.admin.stock.search}
+              placeholder={t.admin.stock.search}
               className="w-full bg-surface rounded-lg px-4 py-2.5 text-sm border border-line focus:border-accent focus:outline-none mb-2"
             />
             {search.trim() && (
@@ -245,7 +246,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
                         type="number"
                         value={line.unitCost}
                         onChange={(e) => updateLine(idx, { unitCost: e.target.value })}
-                        placeholder={ru.admin.move.unitCost}
+                        placeholder={t.admin.move.unitCost}
                         className="flex-1 bg-app rounded-lg px-3 py-2 text-sm focus:outline-none"
                       />
                     )}
@@ -257,7 +258,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
 
           {/* Note */}
           <div>
-            <label className="block text-sm font-medium text-ink mb-1.5">{ru.admin.move.note}</label>
+            <label className="block text-sm font-medium text-ink mb-1.5">{t.admin.move.note}</label>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -272,7 +273,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
             onClick={onClose}
             className="flex-1 bg-app text-ink rounded-lg py-3 font-medium text-sm"
           >
-            {ru.cleaning.cancel}
+            {t.cleaning.cancel}
           </button>
           <button
             onClick={handlePost}
@@ -280,7 +281,7 @@ export function MoveModal({ onClose, onDone }: { onClose: () => void; onDone: ()
             className="flex-1 bg-accent text-white rounded-lg py-3 font-medium text-sm disabled:opacity-40 flex items-center justify-center gap-2"
           >
             {posting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            {ru.admin.move.post}
+            {t.admin.move.post}
           </button>
         </div>
       </div>

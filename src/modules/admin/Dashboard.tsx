@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchToOrder, fetchApartmentGaps, fetchShortageEvents, fetchApartmentsAdmin, fetchBuildings } from '@/modules/admin/api'
 import type { ToOrderRow, ApartmentGapRow, EventRow, Apartment, Building, AptType } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { formatQty } from '@/lib/format'
 import { AlertTriangle, TrendingDown, PackageX } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
@@ -13,6 +13,7 @@ function pctColor(p: number): string {
 }
 
 function ProgressBar({ value, color, className }: { value: number; color: string; className?: string }) {
+  const { t, n } = useI18n()
   return (
     <span className={`block h-1.5 rounded-full overflow-hidden ${className ?? ''}`} style={{ background: 'var(--line)' }}>
       <span
@@ -24,6 +25,7 @@ function ProgressBar({ value, color, className }: { value: number; color: string
 }
 
 export function Dashboard() {
+  const { t, n } = useI18n()
   const navigate = useNavigate()
   const [toOrder, setToOrder] = useState<ToOrderRow[]>([])
   const [gaps, setGaps] = useState<ApartmentGapRow[]>([])
@@ -61,9 +63,9 @@ export function Dashboard() {
   const apartmentsByType = useMemo(() => {
     const typeOrder: AptType[] = ['studio', '1br', '2br']
     const typeLabels: Record<AptType, string> = {
-      studio: ru.apartments.typeStudio,
-      '1br': ru.apartments.type1br,
-      '2br': ru.apartments.type2br,
+      studio: t.apartments.typeStudio,
+      '1br': t.apartments.type1br,
+      '2br': t.apartments.type2br,
     }
     const map = new Map<AptType, Apartment[]>()
     for (const a of apartments) {
@@ -75,7 +77,7 @@ export function Dashboard() {
   }, [apartments])
 
   if (loading) {
-    return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+    return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
   }
 
   const incompleteCount = Array.from(gapApartments.values()).filter((a) => a.items.length > 0).length
@@ -83,12 +85,12 @@ export function Dashboard() {
   return (
     <div className="px-4 pt-5 pb-28 lg:px-0 lg:pt-0">
       <div className="flex items-center gap-3 mb-5">
-        <h1 className="text-xl font-semibold text-ink">{ru.admin.nav.home}</h1>
+        <h1 className="text-xl font-semibold text-ink">{t.admin.nav.home}</h1>
         <button
           onClick={() => navigate('/admin/move')}
           className="ml-auto bg-accent text-white rounded-lg px-3.5 py-2 text-sm font-medium flex items-center gap-1.5 transition-opacity hover:opacity-90"
         >
-          {ru.admin.move.title}
+          {t.admin.move.title}
         </button>
       </div>
 
@@ -96,15 +98,15 @@ export function Dashboard() {
       <div className="grid grid-cols-3 bg-surface border border-line rounded-xl mb-5 overflow-hidden">
         <div className="px-4 py-3.5 border-r border-line">
           <b className="text-2xl font-semibold text-ink block">{toOrder.length}</b>
-          <span className="text-muted text-xs">{ru.admin.dashboard.toOrder}</span>
+          <span className="text-muted text-xs">{t.admin.dashboard.toOrder}</span>
         </div>
         <div className="px-4 py-3.5 border-r border-line">
           <b className="text-2xl font-semibold text-ink block">{incompleteCount}</b>
-          <span className="text-muted text-xs">{ru.admin.dashboard.gaps}</span>
+          <span className="text-muted text-xs">{t.admin.dashboard.gaps}</span>
         </div>
         <div className="px-4 py-3.5">
           <b className="text-2xl font-semibold text-ink block">{shortages.length}</b>
-          <span className="text-muted text-xs">{ru.admin.dashboard.shortages}</span>
+          <span className="text-muted text-xs">{t.admin.dashboard.shortages}</span>
         </div>
       </div>
 
@@ -113,10 +115,10 @@ export function Dashboard() {
         <section className="bg-surface border border-line rounded-xl p-4">
           <h2 className="text-base font-semibold text-ink mb-3 flex items-center gap-2">
             <TrendingDown className="w-4 h-4 text-bad" />
-            {ru.admin.dashboard.toOrder}
+            {t.admin.dashboard.toOrder}
           </h2>
           {toOrder.length === 0 ? (
-            <p className="text-muted text-sm">{ru.admin.dashboard.noToOrder}</p>
+            <p className="text-muted text-sm">{t.admin.dashboard.noToOrder}</p>
           ) : (
             <>
               {toOrder.slice(0, 10).map((r) => (
@@ -127,7 +129,7 @@ export function Dashboard() {
                     <ProgressBar value={(r.qty / r.min_stock) * 100} color="var(--bad)" className="mt-1.5" />
                   </div>
                   <span className="inline-block px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap bg-bad-soft text-bad">
-                    {ru.admin.dashboard.shortage}: {r.shortage}
+                    {t.admin.dashboard.shortage}: {r.shortage}
                   </span>
                 </div>
               ))}
@@ -135,7 +137,7 @@ export function Dashboard() {
                 onClick={() => navigate('/admin/move')}
                 className="mt-3 bg-surface border border-line text-ink rounded-lg px-3.5 py-2 text-sm font-medium transition-colors hover:bg-app"
               >
-                {ru.admin.move.receipt}
+                {t.admin.move.receipt}
               </button>
             </>
           )}
@@ -145,7 +147,7 @@ export function Dashboard() {
         <section className="bg-surface border border-line rounded-xl p-4">
           <h2 className="text-base font-semibold text-ink mb-3 flex items-center gap-2">
             <PackageX className="w-4 h-4 text-warn" />
-            {ru.admin.apartments.completeness}
+            {t.admin.apartments.completeness}
           </h2>
           {apartmentsByType.map(([typeLabel, apts]) => (
             <div key={typeLabel}>
@@ -167,7 +169,7 @@ export function Dashboard() {
                       <div className="text-muted text-xs">{buildingMap.get(apt.building_id) ?? '?'}</div>
                       <ProgressBar value={p} color={pctColor(p)} className="mt-1.5" />
                       <div className="text-muted text-xs mt-1">
-                        {missingQty > 0 ? `${ru.admin.dashboard.gap} ${missingQty}` : 'полная'}
+                        {missingQty > 0 ? `${t.admin.dashboard.gap} ${missingQty}` : 'полная'}
                       </div>
                     </button>
                   )
@@ -183,7 +185,7 @@ export function Dashboard() {
         <div className="mt-5">
           <div className="flex items-center gap-2 mb-2 px-1">
             <AlertTriangle className="w-4 h-4 text-bad" />
-            <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{ru.admin.dashboard.shortages}</h2>
+            <h2 className="text-xs font-semibold text-muted uppercase tracking-wider">{t.admin.dashboard.shortages}</h2>
           </div>
           <div className="space-y-2">
             {shortages.map((ev) => {

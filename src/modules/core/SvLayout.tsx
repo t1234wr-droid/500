@@ -1,18 +1,31 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
+import { LangSwitcher } from '@/components/LangSwitcher'
 import { Building2, Wrench, Phone, User } from 'lucide-react'
-
-const tabs = [
-  { to: '/sv', icon: Building2, label: ru.nav.apartments, end: true },
-  { to: '/sv/incidents', icon: Wrench, label: ru.nav.incidents },
-  { to: '/sv/contacts', icon: Phone, label: ru.nav.contacts },
-  { to: '/sv/profile', icon: User, label: ru.nav.profile },
-]
+import { useEffect } from 'react'
 
 export function SvLayout({ children }: { children: React.ReactNode }) {
+  const { t, lang } = useI18n()
   const { pathname } = useLocation()
+
+  const tabs = [
+    { to: '/sv', icon: Building2, label: t.nav.apartments, end: true },
+    { to: '/sv/incidents', icon: Wrench, label: t.nav.incidents },
+    { to: '/sv/contacts', icon: Phone, label: t.nav.contacts },
+    { to: '/sv/profile', icon: User, label: t.nav.profile },
+  ]
+
+  useEffect(() => {
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.lang = lang
+  }, [lang])
+
   return (
     <div className="min-h-screen bg-app flex flex-col">
+      <div className="flex items-center justify-between px-4 py-2 bg-surface border-b border-line sticky top-0 z-30 max-w-lg mx-auto w-full">
+        <span className="font-semibold text-ink text-sm">{t.app.name}</span>
+        <LangSwitcher compact />
+      </div>
       <main className="flex-1 pb-20 max-w-lg mx-auto w-full">{children}</main>
       <nav className="fixed bottom-0 left-0 right-0 bg-surface border-t border-line z-50">
         <div className="max-w-lg mx-auto flex">

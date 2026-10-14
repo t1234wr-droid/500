@@ -2,28 +2,15 @@ import { useState, useEffect, useMemo } from 'react'
 import { fetchAllIncidents, approveIncident } from '@/modules/admin/api'
 import { fetchApartmentsAdmin } from '@/modules/admin/api'
 import type { Incident, Apartment, IncidentStatus, IncidentKind } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { formatDateTime } from '@/lib/format'
 import { toast, errorMessage } from '@/lib/toast'
 import { Wrench, Package, CircleAlert as AlertCircle, Check, X, Loader as Loader2 } from 'lucide-react'
-
-const statusLabels: Record<IncidentStatus, string> = {
-  new: ru.incidents.statusNew,
-  confirmed: ru.incidents.statusConfirmed,
-  rejected: ru.incidents.statusRejected,
-}
 
 const statusColors: Record<IncidentStatus, string> = {
   new: 'bg-warn-soft text-warn',
   confirmed: 'bg-ok-soft text-ok',
   rejected: 'bg-bad-soft text-bad',
-}
-
-const kindLabels: Record<IncidentKind, string> = {
-  breakdown: ru.incidents.kindBreakdown,
-  broken: ru.incidents.kindBroken,
-  lost: ru.incidents.kindLost,
-  other: ru.incidents.kindOther,
 }
 
 const kindIcons: Record<IncidentKind, React.ComponentType<{ className?: string }>> = {
@@ -34,6 +21,18 @@ const kindIcons: Record<IncidentKind, React.ComponentType<{ className?: string }
 }
 
 export function AdminIncidents() {
+  const { t } = useI18n()
+  const statusLabels: Record<IncidentStatus, string> = {
+    new: t.incidents.statusNew,
+    confirmed: t.incidents.statusConfirmed,
+    rejected: t.incidents.statusRejected,
+  }
+  const kindLabels: Record<IncidentKind, string> = {
+    breakdown: t.incidents.kindBreakdown,
+    broken: t.incidents.kindBroken,
+    lost: t.incidents.kindLost,
+    other: t.incidents.kindOther,
+  }
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [apartments, setApartments] = useState<Apartment[]>([])
   const [loading, setLoading] = useState(true)
@@ -56,7 +55,7 @@ export function AdminIncidents() {
     setProcessing(true)
     try {
       await approveIncident(actionIncident.incident.id, actionIncident.decision, note.trim() || null, force)
-      toast(actionIncident.decision === 'confirm' ? ru.admin.adminIncidents.approved : ru.admin.adminIncidents.rejected, 'success')
+      toast(actionIncident.decision === 'confirm' ? t.admin.adminIncidents.approved : t.admin.adminIncidents.rejected, 'success')
       setActionIncident(null)
       setNote('')
       setForce(false)
@@ -69,14 +68,14 @@ export function AdminIncidents() {
     }
   }
 
-  if (loading) return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+  if (loading) return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
 
   return (
     <div className="px-4 pt-6 pb-28">
-      <h1 className="text-xl font-semibold text-ink mb-4">{ru.admin.adminIncidents.title}</h1>
+      <h1 className="text-xl font-semibold text-ink mb-4">{t.admin.adminIncidents.title}</h1>
 
       {incidents.length === 0 ? (
-        <p className="text-sm text-muted text-center mt-8">{ru.admin.adminIncidents.noIncidents}</p>
+        <p className="text-sm text-muted text-center mt-8">{t.admin.adminIncidents.noIncidents}</p>
       ) : (
         <div className="space-y-3">
           {incidents.map((inc) => {
@@ -109,14 +108,14 @@ export function AdminIncidents() {
                           className="text-xs bg-ok-soft text-ok rounded-lg px-3 py-1.5 flex items-center gap-1.5"
                         >
                           <Check className="w-3 h-3" />
-                          {ru.admin.adminIncidents.confirm}
+                          {t.admin.adminIncidents.confirm}
                         </button>
                         <button
                           onClick={() => { setActionIncident({ incident: inc, decision: 'reject' }); setNote(''); setForce(false) }}
                           className="text-xs bg-bad-soft text-bad rounded-lg px-3 py-1.5 flex items-center gap-1.5"
                         >
                           <X className="w-3 h-3" />
-                          {ru.admin.adminIncidents.reject}
+                          {t.admin.adminIncidents.reject}
                         </button>
                       </div>
                     )}
@@ -132,29 +131,29 @@ export function AdminIncidents() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
           <div className="bg-white rounded-2xl w-full max-w-sm p-5">
             <h3 className="text-base font-semibold text-ink mb-4">
-              {actionIncident.decision === 'confirm' ? ru.admin.adminIncidents.confirmTitle : ru.admin.adminIncidents.rejectTitle}
+              {actionIncident.decision === 'confirm' ? t.admin.adminIncidents.confirmTitle : t.admin.adminIncidents.rejectTitle}
             </h3>
             <input
               value={note}
               onChange={(e) => setNote(e.target.value)}
-              placeholder={ru.admin.adminIncidents.note}
+              placeholder={t.admin.adminIncidents.note}
               className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none mb-3"
             />
             {actionIncident.decision === 'confirm' && actionIncident.incident.item_id && (
               <label className="flex items-center gap-2 mb-3">
                 <input type="checkbox" checked={force} onChange={(e) => setForce(e.target.checked)} className="w-4 h-4" />
-                <span className="text-sm text-ink">{ru.admin.adminIncidents.force}</span>
+                <span className="text-sm text-ink">{t.admin.adminIncidents.force}</span>
               </label>
             )}
             <div className="flex gap-3">
-              <button onClick={() => setActionIncident(null)} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{ru.cleaning.cancel}</button>
+              <button onClick={() => setActionIncident(null)} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{t.cleaning.cancel}</button>
               <button
                 onClick={handleAction}
                 disabled={processing}
                 className={`flex-1 text-white rounded-xl py-3 font-medium disabled:opacity-40 flex items-center justify-center gap-2 ${actionIncident.decision === 'confirm' ? 'bg-ok' : 'bg-bad'}`}
               >
                 {processing ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-                {actionIncident.decision === 'confirm' ? ru.admin.adminIncidents.confirm : ru.admin.adminIncidents.reject}
+                {actionIncident.decision === 'confirm' ? t.admin.adminIncidents.confirm : t.admin.adminIncidents.reject}
               </button>
             </div>
           </div>

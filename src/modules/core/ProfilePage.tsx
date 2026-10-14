@@ -1,12 +1,13 @@
 import { useAuth } from '@/modules/core/store'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { Package, LogOut } from 'lucide-react'
 
 export function ProfilePage() {
+  const { t } = useI18n()
   const profile = useAuth((s) => s.profile)
   const signOut = useAuth((s) => s.signOut)
   if (!profile) return null
-  const roleLabel = profile.role === 'admin' ? ru.profile.roleAdmin : ru.profile.roleSupervisor
+  const roleLabel = profile.role === 'admin' ? t.profile.roleAdmin : t.profile.roleSupervisor
 
   return (
     <div className="px-4 pt-8 pb-28">
@@ -18,14 +19,14 @@ export function ProfilePage() {
         <span className="text-sm text-muted mt-1">{roleLabel}</span>
       </div>
       <div className="bg-surface rounded-xl border border-line divide-y divide-[var(--line)]">
-        <Row label={ru.profile.name} value={profile.full_name} />
-        <Row label={ru.profile.login} value={profile.login} />
-        <Row label={ru.profile.role} value={roleLabel} />
+        <Row label={t.profile.name} value={profile.full_name} />
+        <Row label={t.profile.login} value={profile.login} />
+        <Row label={t.profile.role} value={roleLabel} />
       </div>
       <button onClick={signOut}
         className="w-full mt-6 bg-surface border border-line text-bad rounded-xl py-3 font-medium flex items-center justify-center gap-2 transition-colors hover:bg-bad-soft">
         <LogOut className="w-5 h-5" />
-        {ru.profile.logout}
+        {t.profile.logout}
       </button>
     </div>
   )

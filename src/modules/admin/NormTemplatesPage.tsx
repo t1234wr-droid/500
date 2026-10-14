@@ -2,23 +2,11 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchWarehouseStock, fetchTemplateNorms, upsertNormRule, deleteNormRule } from '@/modules/admin/api'
 import type { WarehouseStockRow, NormRuleRow, NormType, AptType, BaseUnit } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { toast, errorMessage } from '@/lib/toast'
 import { ArrowLeft, Plus, Trash2, CreditCard as Edit3, X, Check } from 'lucide-react'
 
 const aptTypes: AptType[] = ['studio', '1br', '2br']
-
-const aptTypeLabels: Record<AptType, string> = {
-  studio: ru.admin.normTemplates.studio,
-  '1br': ru.admin.normTemplates.br1,
-  '2br': ru.admin.normTemplates.br2,
-}
-
-const normTypeLabels: Record<NormType, string> = {
-  asset_standing: ru.apartments.normInventory,
-  turnover_replenish: ru.apartments.normTurnover,
-  cleaning_consumption: ru.apartments.normCleaning,
-}
 
 const normTypeOrder: NormType[] = ['asset_standing', 'turnover_replenish', 'cleaning_consumption']
 
@@ -31,6 +19,17 @@ function unitShort(unit: BaseUnit): string {
 }
 
 export function NormTemplatesPage() {
+  const { t } = useI18n()
+  const aptTypeLabels: Record<AptType, string> = {
+    studio: t.admin.normTemplates.studio,
+    '1br': t.admin.normTemplates.br1,
+    '2br': t.admin.normTemplates.br2,
+  }
+  const normTypeLabels: Record<NormType, string> = {
+    asset_standing: t.apartments.normInventory,
+    turnover_replenish: t.apartments.normTurnover,
+    cleaning_consumption: t.apartments.normCleaning,
+  }
   const navigate = useNavigate()
   const [selectedType, setSelectedType] = useState<AptType>('studio')
   const [norms, setNorms] = useState<NormRuleRow[]>([])
@@ -83,7 +82,7 @@ export function NormTemplatesPage() {
     } catch (e) {
       const msg = errorMessage(e)
       if (msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('unique')) {
-        toast(ru.admin.normTemplates.duplicate, 'error')
+        toast(t.admin.normTemplates.duplicate, 'error')
       } else {
         toast(msg, 'error')
       }
@@ -91,7 +90,7 @@ export function NormTemplatesPage() {
   }
 
   if (loading) {
-    return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+    return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
   }
 
   return (
@@ -101,16 +100,16 @@ export function NormTemplatesPage() {
           <button onClick={() => navigate('/admin/more')} className="p-1 -ml-1">
             <ArrowLeft className="w-5 h-5 text-ink" />
           </button>
-          <h1 className="text-lg font-semibold text-ink">{ru.admin.normTemplates.title}</h1>
+          <h1 className="text-lg font-semibold text-ink">{t.admin.normTemplates.title}</h1>
         </div>
         <div className="flex px-4 gap-1">
-          {aptTypes.map((t) => (
+          {aptTypes.map((tp) => (
             <button
-              key={t}
-              onClick={() => setSelectedType(t)}
-              className={`px-3 py-2.5 text-sm border-b-2 transition-colors ${selectedType === t ? 'border-accent text-accent font-medium' : 'border-transparent text-muted'}`}
+              key={tp}
+              onClick={() => setSelectedType(tp)}
+              className={`px-3 py-2.5 text-sm border-b-2 transition-colors ${selectedType === tp ? 'border-accent text-accent font-medium' : 'border-transparent text-muted'}`}
             >
-              {aptTypeLabels[t]}
+              {aptTypeLabels[tp]}
             </button>
           ))}
         </div>
@@ -118,7 +117,7 @@ export function NormTemplatesPage() {
 
       <div className="px-4 pt-4 pb-28">
         <p className="text-xs text-muted bg-app rounded-xl px-3 py-2.5 mb-4">
-          {ru.admin.normTemplates.hint}
+          {t.admin.normTemplates.hint}
         </p>
 
         {normTypeOrder.map((nt) => {
@@ -133,11 +132,11 @@ export function NormTemplatesPage() {
                   onClick={() => setAddingNormType(nt)}
                   className="text-accent text-xs flex items-center gap-1"
                 >
-                  <Plus className="w-3 h-3" /> {ru.admin.normTemplates.addNorm}
+                  <Plus className="w-3 h-3" /> {t.admin.normTemplates.addNorm}
                 </button>
               </div>
               {items.length === 0 ? (
-                <p className="text-sm text-muted px-3">{ru.admin.normTemplates.noNorms}</p>
+                <p className="text-sm text-muted px-3">{t.admin.normTemplates.noNorms}</p>
               ) : (
                 <div className="bg-surface rounded-xl border border-line divide-y divide-[var(--line)]">
                   {items.map((n) => {
@@ -193,6 +192,7 @@ function NormEditorModal({
   onClose: () => void
   onSave: (normType: string, itemId: number, qty: number, note: string | null) => void
 }) {
+  const { t } = useI18n()
   const [itemId, setItemId] = useState(norm?.item_id ?? 0)
   const [qty, setQty] = useState(String(norm?.qty ?? 1))
   const [note, setNote] = useState(norm?.note ?? '')
@@ -202,38 +202,38 @@ function NormEditorModal({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
       <div className="bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-ink">{norm ? ru.admin.normTemplates.editNorm : ru.admin.normTemplates.addNorm}</h3>
+          <h3 className="text-base font-semibold text-ink">{norm ? t.admin.normTemplates.editNorm : t.admin.normTemplates.addNorm}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-muted" /></button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.normTemplates.item}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.normTemplates.item}</label>
             <select value={itemId} onChange={(e) => setItemId(Number(e.target.value))} className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none">
               <option value="0">—</option>
               {items.map((i) => <option key={i.item_id} value={i.item_id}>{i.name}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.normTemplates.qty}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.normTemplates.qty}</label>
             <div className="flex items-center gap-2">
               <input type="number" min="0" step="0.001" value={qty} onChange={(e) => setQty(e.target.value)} className="flex-1 bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
               {selectedItem && <span className="text-sm text-muted shrink-0">{unitShort(selectedItem.base_unit)}</span>}
             </div>
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.move.note}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.move.note}</label>
             <input value={note} onChange={(e) => setNote(e.target.value)} className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
         </div>
         <div className="flex gap-3 mt-4">
-          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{ru.cleaning.cancel}</button>
+          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{t.cleaning.cancel}</button>
           <button
             onClick={() => onSave(normType, itemId, Number(qty), note.trim() || null)}
             disabled={!itemId || !qty}
             className="flex-1 bg-accent text-white rounded-xl py-3 font-medium disabled:opacity-40 flex items-center justify-center gap-2"
           >
             <Check className="w-4 h-4" />
-            {ru.admin.normTemplates.save}
+            {t.admin.normTemplates.save}
           </button>
         </div>
       </div>

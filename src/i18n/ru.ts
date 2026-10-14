@@ -307,6 +307,6 @@ export const ru = {
       noCategories: 'Категорий нет',
     },
   },
-} as const
+}
 
 export type Dict = typeof ru

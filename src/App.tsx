@@ -3,11 +3,12 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth, homePathForRole } from '@/modules/core/store'
 import { BootstrapScreen, LoginScreen } from '@/modules/core/AuthScreens'
 import { SvRoutes, AdminRoutes } from '@/modules/registry'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { Package } from 'lucide-react'
 import { ToastContainer } from '@/lib/toast'
 
 function App() {
+  const { t, lang } = useI18n()
   const state = useAuth((s) => s.state)
   const init = useAuth((s) => s.init)
   const profile = useAuth((s) => s.profile)
@@ -16,6 +17,11 @@ function App() {
     init()
   }, [init])
 
+  useEffect(() => {
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.lang = lang
+  }, [lang])
+
   let content: React.ReactNode
   if (state === 'loading') {
     content = (
@@ -23,7 +29,7 @@ function App() {
         <div className="w-14 h-14 bg-accent rounded-2xl flex items-center justify-center mb-4 animate-pulse">
           <Package className="w-7 h-7 text-white" />
         </div>
-        <p className="text-sm text-muted">{ru.app.loading}</p>
+        <p className="text-sm text-muted">{t.app.loading}</p>
       </div>
     )
   } else if (state === 'bootstrap') {

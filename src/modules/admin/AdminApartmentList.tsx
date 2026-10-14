@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { fetchApartmentsAdmin, fetchApartmentGaps, fetchBuildings } from '@/modules/admin/api'
 import type { Apartment, Building, ApartmentGapRow, AptType } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { Search } from 'lucide-react'
 
 function pctColor(p: number): string {
@@ -12,6 +12,7 @@ function pctColor(p: number): string {
 }
 
 function ProgressBar({ value, color }: { value: number; color: string }) {
+  const { t } = useI18n()
   return (
     <span className="block h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--line)' }}>
       <span className="block h-full rounded-full" style={{ width: `${Math.min(value, 100)}%`, background: color }} />
@@ -21,15 +22,15 @@ function ProgressBar({ value, color }: { value: number; color: string }) {
 
 const typeOrder: AptType[] = ['studio', '1br', '2br']
 
-const typeLabels: Record<AptType, string> = {
-  studio: ru.apartments.typeStudio,
-  '1br': ru.apartments.type1br,
-  '2br': ru.apartments.type2br,
-}
-
 type TypeFilter = 'all' | AptType
 
 export function AdminApartmentList() {
+  const { t } = useI18n()
+  const typeLabels: Record<AptType, string> = {
+    studio: t.apartments.typeStudio,
+    '1br': t.apartments.type1br,
+    '2br': t.apartments.type2br,
+  }
   const navigate = useNavigate()
   const [apartments, setApartments] = useState<Apartment[]>([])
   const [buildings, setBuildings] = useState<Building[]>([])
@@ -78,17 +79,17 @@ export function AdminApartmentList() {
       map.set(a.type, list)
     }
     return typeOrder
-      .filter((t) => map.has(t))
-      .map((t) => [t, map.get(t)!] as const)
+      .filter((tp) => map.has(tp))
+      .map((tp) => [tp, map.get(tp)!] as const)
   }, [apartments, search, typeFilter])
 
   if (loading) {
-    return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+    return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
   }
 
   return (
     <div className="px-4 pt-5 pb-28 lg:px-0 lg:pt-0">
-      <h1 className="text-xl font-semibold text-ink mb-4">{ru.admin.apartments.title}</h1>
+      <h1 className="text-xl font-semibold text-ink mb-4">{t.admin.apartments.title}</h1>
 
       <div className="flex gap-2.5 mb-4">
         <div className="relative flex-1">
@@ -96,7 +97,7 @@ export function AdminApartmentList() {
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder={ru.apartments.search}
+            placeholder={t.apartments.search}
             className="w-full bg-surface rounded-lg pl-10 pr-4 py-2 text-sm border border-line focus:border-accent focus:outline-none"
           />
         </div>
@@ -105,9 +106,9 @@ export function AdminApartmentList() {
           onChange={(e) => setTypeFilter(e.target.value as TypeFilter)}
           className="bg-surface rounded-lg px-3 py-2 text-sm border border-line focus:border-accent focus:outline-none"
         >
-          <option value="all">{ru.apartments.typeAll}</option>
-          {typeOrder.map((t) => (
-            <option key={t} value={t}>{typeLabels[t]}</option>
+          <option value="all">{t.apartments.typeAll}</option>
+          {typeOrder.map((tp) => (
+            <option key={tp} value={tp}>{typeLabels[tp]}</option>
           ))}
         </select>
       </div>
@@ -131,7 +132,7 @@ export function AdminApartmentList() {
                   <div className="text-muted text-xs">{buildingMap.get(apt.building_id) ?? '?'}</div>
                   <ProgressBar value={p} color={pctColor(p)} />
                   <div className="text-muted text-xs mt-1">
-                    {missingQty > 0 ? `${ru.admin.dashboard.gap} ${missingQty}` : 'полная'}
+                    {missingQty > 0 ? `${t.admin.dashboard.gap} ${missingQty}` : 'полная'}
                   </div>
                 </button>
               )

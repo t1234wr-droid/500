@@ -1,22 +1,34 @@
 import { NavLink, useLocation } from 'react-router-dom'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
+import { LangSwitcher } from '@/components/LangSwitcher'
 import { Home, Package, Plus, Building2, MoreHorizontal } from 'lucide-react'
-
-const tabs = [
-  { to: '/admin', icon: Home, label: ru.admin.nav.home, end: true },
-  { to: '/admin/stock', icon: Package, label: ru.admin.nav.stock },
-  { to: '/admin/move', icon: Plus, label: ru.admin.nav.move, end: true },
-  { to: '/admin/apartments', icon: Building2, label: ru.admin.nav.apartments },
-  { to: '/admin/more', icon: MoreHorizontal, label: ru.admin.nav.more, end: true },
-]
+import { useEffect } from 'react'
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
+  const { t, lang } = useI18n()
   const { pathname } = useLocation()
+
+  const tabs = [
+    { to: '/admin', icon: Home, label: t.admin.nav.home, end: true },
+    { to: '/admin/stock', icon: Package, label: t.admin.nav.stock },
+    { to: '/admin/move', icon: Plus, label: t.admin.nav.move, end: true },
+    { to: '/admin/apartments', icon: Building2, label: t.admin.nav.apartments },
+    { to: '/admin/more', icon: MoreHorizontal, label: t.admin.nav.more, end: true },
+  ]
+
+  useEffect(() => {
+    document.documentElement.dir = lang === 'ar' ? 'rtl' : 'ltr'
+    document.documentElement.lang = lang
+  }, [lang])
+
   return (
     <div className="min-h-screen bg-app flex flex-col lg:grid lg:grid-cols-[208px_1fr]">
       {/* Desktop sidebar */}
       <aside className="hidden lg:flex flex-col bg-surface border-r border-line sticky top-0 h-screen p-5 pb-8">
-        <div className="font-semibold text-lg text-ink px-2.5 pb-4.5">Склад</div>
+        <div className="flex items-center justify-between px-2.5 pb-4.5">
+          <span className="font-semibold text-lg text-ink">{t.app.name}</span>
+          <LangSwitcher compact />
+        </div>
         <nav className="flex flex-col gap-0.5">
           {tabs.map((tab) => {
             const active = tab.end ? pathname === tab.to : pathname.startsWith(tab.to)
@@ -42,6 +54,11 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main content */}
       <main className="flex-1 lg:px-7 lg:py-6 pb-24 lg:pb-8 max-w-[1180px] w-full">
+        {/* Mobile top bar with language switcher */}
+        <div className="lg:hidden flex items-center justify-between px-4 py-2 bg-surface border-b border-line sticky top-0 z-30">
+          <span className="font-semibold text-ink text-sm">{t.app.name}</span>
+          <LangSwitcher compact />
+        </div>
         {children}
       </main>
 

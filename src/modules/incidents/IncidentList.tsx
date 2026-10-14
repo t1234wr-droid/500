@@ -3,27 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { fetchMyIncidents } from '@/modules/incidents/api'
 import { fetchApartments } from '@/modules/apartments/api'
 import type { Incident, SvApartment, IncidentStatus, IncidentKind } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { formatDateTime } from '@/lib/format'
 import { Plus, Wrench, Package, AlertCircle } from 'lucide-react'
-
-const statusLabels: Record<IncidentStatus, string> = {
-  new: ru.incidents.statusNew,
-  confirmed: ru.incidents.statusConfirmed,
-  rejected: ru.incidents.statusRejected,
-}
 
 const statusColors: Record<IncidentStatus, string> = {
   new: 'bg-warn-soft text-warn',
   confirmed: 'bg-ok-soft text-ok',
   rejected: 'bg-bad-soft text-bad',
-}
-
-const kindLabels: Record<IncidentKind, string> = {
-  breakdown: ru.incidents.kindBreakdown,
-  broken: ru.incidents.kindBroken,
-  lost: ru.incidents.kindLost,
-  other: ru.incidents.kindOther,
 }
 
 const kindIcons: Record<IncidentKind, React.ComponentType<{ className?: string }>> = {
@@ -34,6 +21,18 @@ const kindIcons: Record<IncidentKind, React.ComponentType<{ className?: string }
 }
 
 export function IncidentList() {
+  const { t } = useI18n()
+  const statusLabels: Record<IncidentStatus, string> = {
+    new: t.incidents.statusNew,
+    confirmed: t.incidents.statusConfirmed,
+    rejected: t.incidents.statusRejected,
+  }
+  const kindLabels: Record<IncidentKind, string> = {
+    breakdown: t.incidents.kindBreakdown,
+    broken: t.incidents.kindBroken,
+    lost: t.incidents.kindLost,
+    other: t.incidents.kindOther,
+  }
   const navigate = useNavigate()
   const [incidents, setIncidents] = useState<Incident[]>([])
   const [apartments, setApartments] = useState<SvApartment[]>([])
@@ -51,18 +50,18 @@ export function IncidentList() {
   return (
     <div className="px-4 pt-6 pb-28">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-ink">{ru.incidents.myIncidents}</h1>
+        <h1 className="text-xl font-semibold text-ink">{t.incidents.myIncidents}</h1>
         <button onClick={() => navigate('/sv/incidents/new')} className="bg-accent text-white rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-1.5">
           <Plus className="w-4 h-4" />
-          {ru.incidents.title}
+          {t.incidents.title}
         </button>
       </div>
       {loading ? (
-        <p className="text-center text-muted mt-8">{ru.app.loading}</p>
+        <p className="text-center text-muted mt-8">{t.app.loading}</p>
       ) : incidents.length === 0 ? (
         <div className="flex flex-col items-center justify-center mt-16 text-muted">
           <Wrench className="w-10 h-10 mb-3" />
-          <p className="text-sm">{ru.incidents.noIncidents}</p>
+          <p className="text-sm">{t.incidents.noIncidents}</p>
         </div>
       ) : (
         <div className="space-y-3">

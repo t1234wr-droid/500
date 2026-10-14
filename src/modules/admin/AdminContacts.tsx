@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { fetchAllContacts, createContact, updateContact, deleteContact } from '@/modules/admin/api'
 import type { Contact } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { toast, errorMessage } from '@/lib/toast'
 import { Plus, Trash2, CreditCard as Edit3, X, Check, Phone, MessageCircle } from 'lucide-react'
 
 export function AdminContacts() {
+  const { t } = useI18n()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Contact | null>(null)
@@ -14,19 +15,19 @@ export function AdminContacts() {
   const load = () => { fetchAllContacts().then(setContacts).catch(() => {}).finally(() => setLoading(false)) }
   useEffect(() => { load() }, [])
 
-  if (loading) return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+  if (loading) return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
 
   return (
     <div className="px-4 pt-6 pb-28">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-ink">{ru.admin.adminContacts.title}</h1>
+        <h1 className="text-xl font-semibold text-ink">{t.admin.adminContacts.title}</h1>
         <button onClick={() => setAdding(true)} className="bg-accent text-white rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-1.5">
-          <Plus className="w-4 h-4" />{ru.admin.adminContacts.add}
+          <Plus className="w-4 h-4" />{t.admin.adminContacts.add}
         </button>
       </div>
 
       {contacts.length === 0 ? (
-        <p className="text-sm text-muted text-center mt-8">{ru.admin.adminContacts.noContacts}</p>
+        <p className="text-sm text-muted text-center mt-8">{t.admin.adminContacts.noContacts}</p>
       ) : (
         <div className="space-y-2">
           {contacts.map((c) => (
@@ -60,13 +61,13 @@ export function AdminContacts() {
               } else {
                 await createContact({ name, group_name: group, role_title: roleTitle, phone_e164: phone, has_whatsapp: whatsapp, sort: 0 })
               }
-              toast(ru.admin.adminContacts.save, 'success')
+              toast(t.admin.adminContacts.save, 'success')
               setEditing(null); setAdding(false); load()
             } catch (e) { toast(errorMessage(e), 'error') }
           }}
           onDelete={editing ? async () => {
-            if (!confirm(ru.admin.adminContacts.confirmDelete)) return
-            try { await deleteContact(editing.id); toast(ru.admin.adminContacts.delete, 'success'); setEditing(null); load() }
+            if (!confirm(t.admin.adminContacts.confirmDelete)) return
+            try { await deleteContact(editing.id); toast(t.admin.adminContacts.delete, 'success'); setEditing(null); load() }
             catch (e) { toast(errorMessage(e), 'error') }
           } : undefined}
         />
@@ -86,6 +87,7 @@ function ContactEditor({
   onSave: (name: string, group: string | null, roleTitle: string | null, phone: string, whatsapp: boolean, active: boolean) => void
   onDelete?: () => void
 }) {
+  const { t } = useI18n()
   const [name, setName] = useState(contact?.name ?? '')
   const [group, setGroup] = useState(contact?.group_name ?? '')
   const [roleTitle, setRoleTitle] = useState(contact?.role_title ?? '')
@@ -97,34 +99,34 @@ function ContactEditor({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
       <div className="bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-ink">{contact ? ru.admin.adminContacts.title : ru.admin.adminContacts.add}</h3>
+          <h3 className="text-base font-semibold text-ink">{contact ? t.admin.adminContacts.title : t.admin.adminContacts.add}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-muted" /></button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.adminContacts.name}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.adminContacts.name}</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.adminContacts.group}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.adminContacts.group}</label>
             <input value={group} onChange={(e) => setGroup(e.target.value)} className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.adminContacts.roleTitle}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.adminContacts.roleTitle}</label>
             <input value={roleTitle} onChange={(e) => setRoleTitle(e.target.value)} className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.adminContacts.phone}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.adminContacts.phone}</label>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+20123456789" className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={whatsapp} onChange={(e) => setWhatsapp(e.target.checked)} className="w-4 h-4" />
-            <span className="text-sm text-ink">{ru.admin.adminContacts.whatsapp}</span>
+            <span className="text-sm text-ink">{t.admin.adminContacts.whatsapp}</span>
           </label>
           {contact && (
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="w-4 h-4" />
-              <span className="text-sm text-ink">{ru.admin.adminContacts.active}</span>
+              <span className="text-sm text-ink">{t.admin.adminContacts.active}</span>
             </label>
           )}
         </div>
@@ -134,13 +136,13 @@ function ContactEditor({
               <Trash2 className="w-4 h-4" />
             </button>
           )}
-          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{ru.cleaning.cancel}</button>
+          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{t.cleaning.cancel}</button>
           <button
             onClick={() => onSave(name.trim(), group.trim() || null, roleTitle.trim() || null, phone.trim(), whatsapp, active)}
             disabled={!name.trim() || !phone.trim()}
             className="flex-1 bg-accent text-white rounded-xl py-3 font-medium disabled:opacity-40 flex items-center justify-center gap-2"
           >
-            <Check className="w-4 h-4" />{ru.admin.adminContacts.save}
+            <Check className="w-4 h-4" />{t.admin.adminContacts.save}
           </button>
         </div>
       </div>

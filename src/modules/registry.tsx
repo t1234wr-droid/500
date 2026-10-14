@@ -2,7 +2,7 @@ import { lazy, Suspense, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { SvLayout } from '@/modules/core/SvLayout'
 import { useAuth } from '@/modules/core/store'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { Shield } from 'lucide-react'
 import { AdminLayout } from '@/modules/admin/AdminLayout'
 import { MoveModal } from '@/modules/admin/MoveForm'
@@ -28,14 +28,16 @@ const NormTemplatesPage = lazy(() => import('@/modules/admin/NormTemplatesPage')
 const CatalogPage = lazy(() => import('@/modules/admin/CatalogPage').then(m => ({ default: m.CatalogPage })))
 
 function Loading() {
-  return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+  const { t } = useI18n()
+  return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
 }
 
 function AdminBanner() {
+  const { t } = useI18n()
   return (
     <div className="sticky top-0 z-40 bg-warn-soft text-warn text-center text-sm py-2 font-medium flex items-center justify-center gap-2">
       <Shield className="w-4 h-4" />
-      {ru.adminBanner}
+      {t.adminBanner}
     </div>
   )
 }

@@ -3,13 +3,14 @@ import { useParams, useNavigate } from 'react-router-dom'
 import { fetchNorms, fetchStaff } from '@/modules/apartments/api'
 import { completeCleaning, queueCleaningOffline } from '@/modules/cleaning/api'
 import type { SvNorm, SvStaff, NormType, CleaningResult } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { formatQty } from '@/lib/format'
 import { X, Check, Loader2, AlertTriangle, Star } from 'lucide-react'
 
 const writeoffTypes: NormType[] = ['turnover_replenish', 'cleaning_consumption']
 
 export function CleaningSheet() {
+  const { t, n } = useI18n()
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const aptId = Number(id)
@@ -52,7 +53,7 @@ export function CleaningSheet() {
   const setLead = (staffId: number) => { if (selectedStaff.includes(staffId)) setLeadStaffId(staffId) }
 
   const handleConfirm = async () => {
-    if (needsStaff && selectedStaff.length === 0) { setError(ru.cleaning.needLead); return }
+    if (needsStaff && selectedStaff.length === 0) { setError(t.cleaning.needLead); return }
     setSubmitting(true)
     setError(null)
     const cleanedAt = new Date().toISOString()
@@ -61,7 +62,7 @@ export function CleaningSheet() {
       if (!navigator.onLine) { await queueCleaningOffline(params); setOffline(true); setTimeout(() => navigate(`/sv/apartments/${aptId}`), 1500); return }
       const res = await completeCleaning(params)
       setResult(res)
-      if (res.duplicate) setError(ru.cleaning.duplicate)
+      if (res.duplicate) setError(t.cleaning.duplicate)
       setTimeout(() => navigate(`/sv/apartments/${aptId}`), 1200)
     } catch (e) {
       try { await queueCleaningOffline(params); setOffline(true); setTimeout(() => navigate(`/sv/apartments/${aptId}`), 1500) } catch { setError(String(e)) }
@@ -83,7 +84,7 @@ export function CleaningSheet() {
           <div className="w-10 h-1 rounded-full" style={{ background: 'var(--line)' }} />
         </div>
         <div className="px-5 py-3 flex items-center justify-between border-b border-line">
-          <h2 className="text-base font-semibold text-ink">{ru.cleaning.title}</h2>
+          <h2 className="text-base font-semibold text-ink">{t.cleaning.title}</h2>
           <button onClick={() => navigate(`/sv/apartments/${aptId}`)} className="p-1">
             <X className="w-5 h-5 text-muted" />
           </button>
@@ -91,8 +92,8 @@ export function CleaningSheet() {
         <div className="px-5 py-4 space-y-5">
           {needsStaff && (
             <div>
-              <label className="block text-sm font-medium text-ink mb-2">{ru.cleaning.whoCleaned}</label>
-              <p className="text-xs text-muted mb-2">{ru.cleaning.whoCleanedHint}</p>
+              <label className="block text-sm font-medium text-ink mb-2">{t.cleaning.whoCleaned}</label>
+              <p className="text-xs text-muted mb-2">{t.cleaning.whoCleanedHint}</p>
               <div className="space-y-2">
                 {staff.map((s) => {
                   const selected = selectedStaff.includes(s.id)
@@ -106,7 +107,7 @@ export function CleaningSheet() {
                       {selected && (
                         <button onClick={() => setLead(s.id)} className={`flex items-center gap-1 text-xs px-2 py-1 rounded-full transition-colors ${isLead ? 'bg-warn-soft text-warn' : 'text-muted hover:text-warn'}`}>
                           <Star className={`w-3 h-3 ${isLead ? 'fill-[var(--warn)]' : ''}`} />
-                          {ru.cleaning.leadStaff}
+                          {t.cleaning.leadStaff}
                         </button>
                       )}
                     </div>
@@ -116,9 +117,9 @@ export function CleaningSheet() {
             </div>
           )}
           <div>
-            <label className="block text-sm font-medium text-ink mb-2">{ru.cleaning.writeoff}</label>
+            <label className="block text-sm font-medium text-ink mb-2">{t.cleaning.writeoff}</label>
             {writeoffItems.length === 0 ? (
-              <p className="text-sm text-muted">{ru.cleaning.noWriteoff}</p>
+              <p className="text-sm text-muted">{t.cleaning.noWriteoff}</p>
             ) : (
               <div className="bg-app rounded-xl border border-line divide-y divide-[var(--line)]">
                 {writeoffItems.map((n) => (
@@ -131,8 +132,8 @@ export function CleaningSheet() {
             )}
           </div>
           <div>
-            <label className="block text-sm font-medium text-ink mb-2">{ru.cleaning.note}</label>
-            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={ru.cleaning.notePlaceholder} rows={2}
+            <label className="block text-sm font-medium text-ink mb-2">{t.cleaning.note}</label>
+            <textarea value={note} onChange={(e) => setNote(e.target.value)} placeholder={t.cleaning.notePlaceholder} rows={2}
               className="w-full bg-app rounded-xl px-3 py-2.5 text-sm border border-line focus:border-accent focus:outline-none resize-none" />
           </div>
           {error && (
@@ -144,28 +145,28 @@ export function CleaningSheet() {
           {result && !result.duplicate && (
             <div className="flex items-center gap-2 bg-ok-soft border border-line rounded-xl px-3 py-2.5">
               <Check className="w-4 h-4 text-ok" />
-              <p className="text-sm text-ok">{ru.cleaning.success}</p>
+              <p className="text-sm text-ok">{t.cleaning.success}</p>
             </div>
           )}
           {offline && (
             <div className="flex items-center gap-2 bg-warn-soft border border-line rounded-xl px-3 py-2.5">
               <AlertTriangle className="w-4 h-4 text-warn" />
-              <p className="text-sm text-warn">{ru.cleaning.pending}</p>
+              <p className="text-sm text-warn">{t.cleaning.pending}</p>
             </div>
           )}
           {result?.shortages && result.shortages.length > 0 && (
             <div className="bg-warn-soft border border-line rounded-xl px-3 py-2.5">
-              <p className="text-sm font-medium text-warn mb-1">{ru.cleaning.shortages}</p>
+              <p className="text-sm font-medium text-warn mb-1">{t.cleaning.shortages}</p>
               {result.shortages.map((s) => <p key={s.item_id} className="text-xs text-warn">{s.item}: {s.balance}</p>)}
             </div>
           )}
         </div>
         <div className="sticky bottom-0 bg-surface border-t border-line px-5 py-3 flex gap-3">
-          <button onClick={() => navigate(`/sv/apartments/${aptId}`)} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{ru.cleaning.cancel}</button>
+          <button onClick={() => navigate(`/sv/apartments/${aptId}`)} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{t.cleaning.cancel}</button>
           <button onClick={handleConfirm} disabled={submitting || (needsStaff && selectedStaff.length === 0)}
             className="flex-1 bg-accent text-white rounded-xl py-3 font-medium disabled:opacity-40 flex items-center justify-center gap-2">
             {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
-            {ru.cleaning.confirm}
+            {t.cleaning.confirm}
           </button>
         </div>
       </div>

@@ -1,11 +1,12 @@
 import { useState, useEffect } from 'react'
 import { fetchAllStaff, createStaff, updateStaff, deleteStaff } from '@/modules/admin/api'
 import type { Staff } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { toast, errorMessage } from '@/lib/toast'
 import { Plus, Trash2, CreditCard as Edit3, X, Check, Phone } from 'lucide-react'
 
 export function StaffPage() {
+  const { t } = useI18n()
   const [staff, setStaff] = useState<Staff[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<Staff | null>(null)
@@ -17,23 +18,23 @@ export function StaffPage() {
 
   useEffect(() => { load() }, [])
 
-  if (loading) return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+  if (loading) return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
 
   return (
     <div className="px-4 pt-6 pb-28">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-ink">{ru.admin.staff.title}</h1>
+        <h1 className="text-xl font-semibold text-ink">{t.admin.staff.title}</h1>
         <button
           onClick={() => setAdding(true)}
           className="bg-accent text-white rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" />
-          {ru.admin.staff.add}
+          {t.admin.staff.add}
         </button>
       </div>
 
       {staff.length === 0 ? (
-        <p className="text-sm text-muted text-center mt-8">{ru.admin.staff.noStaff}</p>
+        <p className="text-sm text-muted text-center mt-8">{t.admin.staff.noStaff}</p>
       ) : (
         <div className="space-y-2">
           {staff.map((s) => (
@@ -50,7 +51,7 @@ export function StaffPage() {
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${s.active ? 'bg-ok-soft text-ok' : 'bg-app text-muted'}`}>
-                    {s.active ? ru.admin.staff.active : ru.admin.staff.inactive}
+                    {s.active ? t.admin.staff.active : t.admin.staff.inactive}
                   </span>
                   <button onClick={() => setEditing(s)} className="text-muted hover:text-accent">
                     <Edit3 className="w-4 h-4" />
@@ -73,7 +74,7 @@ export function StaffPage() {
               } else {
                 await createStaff(name, roleVal, phone)
               }
-              toast(ru.admin.staff.save, 'success')
+              toast(t.admin.staff.save, 'success')
               setEditing(null)
               setAdding(false)
               load()
@@ -84,7 +85,7 @@ export function StaffPage() {
           onDelete={editing ? async () => {
             try {
               await deleteStaff(editing.id)
-              toast(ru.admin.staff.delete, 'success')
+              toast(t.admin.staff.delete, 'success')
               setEditing(null)
               load()
             } catch (e) {
@@ -108,6 +109,7 @@ function StaffEditor({
   onSave: (name: string, role: string, phone: string, active: boolean) => void
   onDelete?: () => void
 }) {
+  const { t } = useI18n()
   const [name, setName] = useState(staff?.full_name ?? '')
   const [roleVal, setRoleVal] = useState(staff?.role ?? 'housekeeper')
   const [phone, setPhone] = useState(staff?.phone ?? '')
@@ -117,43 +119,43 @@ function StaffEditor({
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center px-6">
       <div className="bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-ink">{staff ? ru.admin.staff.title : ru.admin.staff.add}</h3>
+          <h3 className="text-base font-semibold text-ink">{staff ? t.admin.staff.title : t.admin.staff.add}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-muted" /></button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.staff.name}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.staff.name}</label>
             <input value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.staff.role}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.staff.role}</label>
             <input value={roleVal} onChange={(e) => setRoleVal(e.target.value)} className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.staff.phone}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.staff.phone}</label>
             <input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+20123456789" className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           {staff && (
             <label className="flex items-center gap-2">
               <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} className="w-4 h-4" />
-              <span className="text-sm text-ink">{ru.admin.staff.active}</span>
+              <span className="text-sm text-ink">{t.admin.staff.active}</span>
             </label>
           )}
         </div>
         <div className="flex gap-3 mt-4">
           {onDelete && (
-            <button onClick={() => { if (confirm(ru.admin.staff.confirmDelete)) onDelete() }} className="bg-bad-soft text-bad rounded-xl px-4 py-3 font-medium">
+            <button onClick={() => { if (confirm(t.admin.staff.confirmDelete)) onDelete() }} className="bg-bad-soft text-bad rounded-xl px-4 py-3 font-medium">
               <Trash2 className="w-4 h-4" />
             </button>
           )}
-          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{ru.cleaning.cancel}</button>
+          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{t.cleaning.cancel}</button>
           <button
             onClick={() => onSave(name.trim(), roleVal.trim(), phone.trim(), active)}
             disabled={!name.trim()}
             className="flex-1 bg-accent text-white rounded-xl py-3 font-medium disabled:opacity-40 flex items-center justify-center gap-2"
           >
             <Check className="w-4 h-4" />
-            {ru.admin.staff.save}
+            {t.admin.staff.save}
           </button>
         </div>
       </div>

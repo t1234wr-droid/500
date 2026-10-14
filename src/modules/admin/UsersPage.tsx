@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { toast, errorMessage } from '@/lib/toast'
 import { Plus, Trash2, Eye, EyeOff, Copy, Check, X, Lock, CreditCard as Edit3 } from 'lucide-react'
 
@@ -13,6 +13,7 @@ interface AdminUser {
 }
 
 export function UsersPage() {
+  const { t } = useI18n()
   const [users, setUsers] = useState<AdminUser[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
@@ -41,7 +42,7 @@ export function UsersPage() {
       const { data, error } = await supabase.functions.invoke('admin-users', { body: { action: 'set_active', id, active: !active } })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
-      toast(active ? ru.admin.users.inactive : ru.admin.users.active, 'success')
+      toast(active ? t.admin.users.inactive : t.admin.users.active, 'success')
       load()
     } catch (e) {
       toast(errorMessage(e), 'error')
@@ -49,12 +50,12 @@ export function UsersPage() {
   }
 
   const handleDelete = async (id: string) => {
-    if (!confirm(ru.admin.users.confirmDelete)) return
+    if (!confirm(t.admin.users.confirmDelete)) return
     try {
       const { data, error } = await supabase.functions.invoke('admin-users', { body: { action: 'delete', id } })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
-      toast(ru.admin.users.delete, 'success')
+      toast(t.admin.users.delete, 'success')
       load()
     } catch (e) {
       toast(errorMessage(e), 'error')
@@ -67,23 +68,23 @@ export function UsersPage() {
     setTimeout(() => setCopied(null), 2000)
   }
 
-  if (loading) return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+  if (loading) return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
 
   return (
     <div className="px-4 pt-6 pb-28">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-ink">{ru.admin.users.title}</h1>
+        <h1 className="text-xl font-semibold text-ink">{t.admin.users.title}</h1>
         <button
           onClick={() => setAdding(true)}
           className="bg-accent text-white rounded-xl px-4 py-2 text-sm font-medium flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" />
-          {ru.admin.users.add}
+          {t.admin.users.add}
         </button>
       </div>
 
       {users.length === 0 ? (
-        <p className="text-sm text-muted text-center mt-8">{ru.admin.users.noUsers}</p>
+        <p className="text-sm text-muted text-center mt-8">{t.admin.users.noUsers}</p>
       ) : (
         <div className="space-y-2">
           {users.map((u) => (
@@ -97,41 +98,41 @@ export function UsersPage() {
                   onClick={() => handleSetActive(u.id, u.active)}
                   className={`text-xs px-3 py-1.5 rounded-full font-medium ${u.active ? 'bg-ok-soft text-ok' : 'bg-app text-muted'}`}
                 >
-                  {u.active ? ru.admin.users.active : ru.admin.users.inactive}
+                  {u.active ? t.admin.users.active : t.admin.users.inactive}
                 </button>
               </div>
               <div className="flex gap-2">
                 <button
                   onClick={() => {
-                    const pw = prompt(ru.admin.users.setPassword)
+                    const pw = prompt(t.admin.users.setPassword)
                     if (pw && pw.length >= 8) {
                       supabase.functions.invoke('admin-users', { body: { action: 'set_password', id: u.id, password: pw } })
                         .then(({ data, error }) => {
                           if (error || data?.error) { toast(error?.message ?? data?.error, 'error'); return }
-                          toast(ru.admin.users.setPassword, 'success')
+                          toast(t.admin.users.setPassword, 'success')
                         })
                     } else if (pw) {
-                      toast(ru.auth.bootstrapPassword, 'error')
+                      toast(t.auth.bootstrapPassword, 'error')
                     }
                   }}
                   className="text-xs bg-app text-ink rounded-lg px-3 py-1.5 flex items-center gap-1.5"
                 >
                   <Lock className="w-3 h-3" />
-                  {ru.admin.users.setPassword}
+                  {t.admin.users.setPassword}
                 </button>
                 <button
                   onClick={() => { setRenaming(u.id); setRenameValue(u.full_name) }}
                   className="text-xs bg-app text-ink rounded-lg px-3 py-1.5 flex items-center gap-1.5"
                 >
                   <Edit3 className="w-3 h-3" />
-                  {ru.admin.users.rename}
+                  {t.admin.users.rename}
                 </button>
                 <button
                   onClick={() => handleDelete(u.id)}
                   className="text-xs bg-bad-soft text-bad rounded-lg px-3 py-1.5 flex items-center gap-1.5"
                 >
                   <Trash2 className="w-3 h-3" />
-                  {ru.admin.users.delete}
+                  {t.admin.users.delete}
                 </button>
               </div>
             </div>
@@ -156,7 +157,7 @@ export function UsersPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
           <div className="bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-ink">{ru.admin.users.renameTitle}</h3>
+              <h3 className="text-base font-semibold text-ink">{t.admin.users.renameTitle}</h3>
               <button onClick={() => setRenaming(null)}><X className="w-5 h-5 text-muted" /></button>
             </div>
             <input
@@ -166,7 +167,7 @@ export function UsersPage() {
             />
             <div className="flex gap-3">
               <button onClick={() => setRenaming(null)} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">
-                {ru.cleaning.cancel}
+                {t.cleaning.cancel}
               </button>
               <button
                 onClick={async () => {
@@ -174,7 +175,7 @@ export function UsersPage() {
                     const { data, error } = await supabase.functions.invoke('admin-users', { body: { action: 'rename', id: renaming, full_name: renameValue.trim() } })
                     if (error) throw error
                     if (data?.error) throw new Error(data.error)
-                    toast(ru.admin.users.renamed, 'success')
+                    toast(t.admin.users.renamed, 'success')
                     setRenaming(null)
                     load()
                   } catch (e) {
@@ -184,7 +185,7 @@ export function UsersPage() {
                 disabled={!renameValue.trim()}
                 className="flex-1 bg-accent text-white rounded-xl py-3 font-medium disabled:opacity-40"
               >
-                {ru.admin.users.rename}
+                {t.admin.users.rename}
               </button>
             </div>
           </div>
@@ -196,14 +197,14 @@ export function UsersPage() {
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
           <div className="bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-base font-semibold text-ink">{ru.admin.users.credentialsTitle}</h3>
+              <h3 className="text-base font-semibold text-ink">{t.admin.users.credentialsTitle}</h3>
               <button onClick={() => setCreatedCreds(null)}><X className="w-5 h-5 text-muted" /></button>
             </div>
-            <p className="text-sm text-warn bg-warn-soft rounded-xl px-3 py-2.5 mb-4">{ru.admin.users.credentialsHint}</p>
+            <p className="text-sm text-warn bg-warn-soft rounded-xl px-3 py-2.5 mb-4">{t.admin.users.credentialsHint}</p>
             <div className="space-y-3">
               <div className="bg-app rounded-xl px-4 py-3 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted">{ru.admin.users.login}</p>
+                  <p className="text-xs text-muted">{t.admin.users.login}</p>
                   <p className="text-sm font-medium text-ink">{createdCreds.login}</p>
                 </div>
                 <button onClick={() => copy(createdCreds.login, 'login')} className="text-accent">
@@ -212,7 +213,7 @@ export function UsersPage() {
               </div>
               <div className="bg-app rounded-xl px-4 py-3 flex items-center justify-between">
                 <div>
-                  <p className="text-xs text-muted">{ru.admin.users.password}</p>
+                  <p className="text-xs text-muted">{t.admin.users.password}</p>
                   <p className="text-sm font-medium text-ink">{createdCreds.password}</p>
                 </div>
                 <button onClick={() => copy(createdCreds.password, 'password')} className="text-accent">
@@ -231,6 +232,7 @@ export function UsersPage() {
 }
 
 function UserCreateForm({ onClose, onCreated }: { onClose: () => void; onCreated: (login: string, password: string) => void }) {
+  const { t } = useI18n()
   const [login, setLogin] = useState('')
   const [fullName, setFullName] = useState('')
   const [password, setPassword] = useState('')
@@ -245,7 +247,7 @@ function UserCreateForm({ onClose, onCreated }: { onClose: () => void; onCreated
       })
       if (error) throw error
       if (data?.error) throw new Error(data.error)
-      toast(ru.admin.users.created, 'success')
+      toast(t.admin.users.created, 'success')
       onCreated(login, password)
     } catch (e) {
       toast(errorMessage(e), 'error')
@@ -258,12 +260,12 @@ function UserCreateForm({ onClose, onCreated }: { onClose: () => void; onCreated
     <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center px-6">
       <div className="bg-surface rounded-2xl w-full max-w-sm p-5 border border-line">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-ink">{ru.admin.users.add}</h3>
+          <h3 className="text-base font-semibold text-ink">{t.admin.users.add}</h3>
           <button onClick={onClose}><X className="w-5 h-5 text-muted" /></button>
         </div>
         <div className="space-y-3">
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.users.login}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.users.login}</label>
             <input
               value={login}
               onChange={(e) => setLogin(e.target.value.toLowerCase())}
@@ -272,11 +274,11 @@ function UserCreateForm({ onClose, onCreated }: { onClose: () => void; onCreated
             />
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.users.fullName}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.users.fullName}</label>
             <input value={fullName} onChange={(e) => setFullName(e.target.value)} className="w-full bg-app rounded-xl px-4 py-2.5 text-sm focus:outline-none" />
           </div>
           <div>
-            <label className="block text-sm text-ink mb-1">{ru.admin.users.password}</label>
+            <label className="block text-sm text-ink mb-1">{t.admin.users.password}</label>
             <div className="relative">
               <input
                 type={showPw ? 'text' : 'password'}
@@ -292,13 +294,13 @@ function UserCreateForm({ onClose, onCreated }: { onClose: () => void; onCreated
           </div>
         </div>
         <div className="flex gap-3 mt-4">
-          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{ru.cleaning.cancel}</button>
+          <button onClick={onClose} className="flex-1 bg-app text-ink rounded-xl py-3 font-medium">{t.cleaning.cancel}</button>
           <button
             onClick={handleCreate}
             disabled={submitting || !login.trim() || !fullName.trim() || password.length < 8}
             className="flex-1 bg-accent text-white rounded-xl py-3 font-medium disabled:opacity-40"
           >
-            {ru.admin.users.add}
+            {t.admin.users.add}
           </button>
         </div>
       </div>

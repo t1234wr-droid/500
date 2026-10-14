@@ -10,14 +10,9 @@ import {
   deleteItem,
 } from '@/modules/admin/api'
 import type { Category, Item, ItemKind, BaseUnit } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { toast, errorMessage } from '@/lib/toast'
 import { Plus, Trash2, Edit3, X, Check, ChevronRight, ChevronDown, Package, Folder } from 'lucide-react'
-
-const kindLabels: Record<ItemKind, string> = {
-  asset: ru.admin.catalog.kindAsset,
-  consumable: ru.admin.catalog.kindConsumable,
-}
 
 const baseUnitOptions: BaseUnit[] = ['pcs', 'g', 'ml']
 const baseUnitLabels: Record<BaseUnit, string> = {
@@ -27,6 +22,11 @@ const baseUnitLabels: Record<BaseUnit, string> = {
 }
 
 export function CatalogPage() {
+  const { t } = useI18n()
+  const kindLabels: Record<ItemKind, string> = {
+    asset: t.admin.catalog.kindAsset,
+    consumable: t.admin.catalog.kindConsumable,
+  }
   const [categories, setCategories] = useState<Category[]>([])
   const [items, setItems] = useState<Item[]>([])
   const [loading, setLoading] = useState(true)
@@ -59,24 +59,24 @@ export function CatalogPage() {
   }, [items])
 
   if (loading) {
-    return <div className="px-4 pt-8 text-center text-muted">{ru.app.loading}</div>
+    return <div className="px-4 pt-8 text-center text-muted">{t.app.loading}</div>
   }
 
   return (
     <div className="px-4 pt-5 pb-28 lg:px-0 lg:pt-0">
       <div className="flex items-center justify-between mb-4">
-        <h1 className="text-xl font-semibold text-ink">{ru.admin.catalog.title}</h1>
+        <h1 className="text-xl font-semibold text-ink">{t.admin.catalog.title}</h1>
         <button
           onClick={() => setAddingCat(true)}
           className="bg-accent text-white rounded-lg px-3.5 py-2 text-sm font-medium flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" />
-          {ru.admin.catalog.addCategory}
+          {t.admin.catalog.addCategory}
         </button>
       </div>
 
       {categories.length === 0 ? (
-        <p className="text-sm text-muted text-center mt-8">{ru.admin.catalog.noCategories}</p>
+        <p className="text-sm text-muted text-center mt-8">{t.admin.catalog.noCategories}</p>
       ) : (
         <div className="space-y-2">
           {categories.map((cat) => {
@@ -110,10 +110,10 @@ export function CatalogPage() {
                   </button>
                   <button
                     onClick={async () => {
-                      if (!confirm(ru.admin.catalog.confirmDeleteCategory)) return
+                      if (!confirm(t.admin.catalog.confirmDeleteCategory)) return
                       try {
                         await deleteCategory(cat.id)
-                        toast(ru.admin.catalog.delete, 'success')
+                        toast(t.admin.catalog.delete, 'success')
                         load()
                       } catch (e) { toast(errorMessage(e), 'error') }
                     }}
@@ -125,7 +125,7 @@ export function CatalogPage() {
                 {expanded && (
                   <div className="border-t border-line">
                     {catItems.length === 0 ? (
-                      <p className="text-sm text-muted px-4 py-3">{ru.admin.catalog.noItems}</p>
+                      <p className="text-sm text-muted px-4 py-3">{t.admin.catalog.noItems}</p>
                     ) : (
                       catItems.map((it) => (
                         <div key={it.id} className="flex items-center gap-3 px-4 py-2.5 border-b border-line last:border-0">
@@ -142,10 +142,10 @@ export function CatalogPage() {
                           </button>
                           <button
                             onClick={async () => {
-                              if (!confirm(ru.admin.catalog.confirmDeleteItem)) return
+                              if (!confirm(t.admin.catalog.confirmDeleteItem)) return
                               try {
                                 await deleteItem(it.id)
-                                toast(ru.admin.catalog.delete, 'success')
+                                toast(t.admin.catalog.delete, 'success')
                                 load()
                               } catch (e) { toast(errorMessage(e), 'error') }
                             }}
@@ -161,7 +161,7 @@ export function CatalogPage() {
                       className="w-full px-4 py-2.5 text-sm text-accent flex items-center gap-1.5 hover:bg-app transition-colors"
                     >
                       <Plus className="w-3.5 h-3.5" />
-                      {ru.admin.catalog.addItem}
+                      {t.admin.catalog.addItem}
                     </button>
                   </div>
                 )}
@@ -182,7 +182,7 @@ export function CatalogPage() {
               } else {
                 await createCategory(name, kind, sort)
               }
-              toast(ru.admin.catalog.save, 'success')
+              toast(t.admin.catalog.save, 'success')
               setEditingCat(null)
               setAddingCat(false)
               load()
@@ -204,7 +204,7 @@ export function CatalogPage() {
               } else {
                 await createItem(params)
               }
-              toast(ru.admin.catalog.save, 'success')
+              toast(t.admin.catalog.save, 'success')
               setEditingItem(null)
               setAddingItem(null)
               load()
@@ -225,18 +225,23 @@ function CategoryEditor({
   onClose: () => void
   onSave: (name: string, kind: ItemKind, sort: number) => void
 }) {
+  const { t } = useI18n()
+  const kindLabels: Record<ItemKind, string> = {
+    asset: t.admin.catalog.kindAsset,
+    consumable: t.admin.catalog.kindConsumable,
+  }
   const [name, setName] = useState(category?.name ?? '')
   const [kind, setKind] = useState<ItemKind>(category?.kind ?? 'asset')
   const [sort, setSort] = useState(String(category?.sort ?? 0))
 
   return (
-    <Modal title={category ? ru.admin.catalog.editCategory : ru.admin.catalog.addCategory} onClose={onClose}>
+    <Modal title={category ? t.admin.catalog.editCategory : t.admin.catalog.addCategory} onClose={onClose}>
       <div className="space-y-3">
-        <Field label={ru.admin.catalog.categoryName}>
+        <Field label={t.admin.catalog.categoryName}>
           <input value={name} onChange={(e) => setName(e.target.value)}
             className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none" />
         </Field>
-        <Field label={ru.admin.catalog.kind}>
+        <Field label={t.admin.catalog.kind}>
           <div className="grid grid-cols-2 gap-2">
             {(['asset', 'consumable'] as ItemKind[]).map((k) => (
               <button key={k} onClick={() => setKind(k)}
@@ -246,7 +251,7 @@ function CategoryEditor({
             ))}
           </div>
         </Field>
-        <Field label={ru.admin.catalog.sort}>
+        <Field label={t.admin.catalog.sort}>
           <input type="number" value={sort} onChange={(e) => setSort(e.target.value)}
             className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none" />
         </Field>
@@ -278,6 +283,7 @@ function ItemEditor({
     active?: boolean
   }) => void
 }) {
+  const { t } = useI18n()
   const [categoryId, setCategoryId] = useState(item?.category_id ?? defaultCategoryId)
   const [name, setName] = useState(item?.name ?? '')
   const [baseUnit, setBaseUnit] = useState<BaseUnit>(item?.base_unit ?? 'pcs')
@@ -288,19 +294,19 @@ function ItemEditor({
   const [active, setActive] = useState(item?.active ?? true)
 
   return (
-    <Modal title={item ? ru.admin.catalog.editItem : ru.admin.catalog.addItem} onClose={onClose}>
+    <Modal title={item ? t.admin.catalog.editItem : t.admin.catalog.addItem} onClose={onClose}>
       <div className="space-y-3">
-        <Field label={ru.admin.catalog.category}>
+        <Field label={t.admin.catalog.category}>
           <select value={categoryId} onChange={(e) => setCategoryId(Number(e.target.value))}
             className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none">
             {categories.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </Field>
-        <Field label={ru.admin.catalog.itemName}>
+        <Field label={t.admin.catalog.itemName}>
           <input value={name} onChange={(e) => setName(e.target.value)}
             className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none" />
         </Field>
-        <Field label={ru.admin.catalog.baseUnit}>
+        <Field label={t.admin.catalog.baseUnit}>
           <div className="grid grid-cols-3 gap-2">
             {baseUnitOptions.map((u) => (
               <button key={u} onClick={() => setBaseUnit(u)}
@@ -311,16 +317,16 @@ function ItemEditor({
           </div>
         </Field>
         <div className="grid grid-cols-2 gap-2">
-          <Field label={ru.admin.catalog.packSize}>
+          <Field label={t.admin.catalog.packSize}>
             <input type="number" min="1" step="0.001" value={packSize} onChange={(e) => setPackSize(e.target.value)}
               className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none" />
           </Field>
-          <Field label={ru.admin.catalog.packLabel}>
+          <Field label={t.admin.catalog.packLabel}>
             <input value={packLabel} onChange={(e) => setPackLabel(e.target.value)}
               className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none" />
           </Field>
         </div>
-        <Field label={ru.admin.catalog.minStock}>
+        <Field label={t.admin.catalog.minStock}>
           <input type="number" min="0" step="0.001" value={minStock} onChange={(e) => setMinStock(e.target.value)}
             placeholder="—"
             className="w-full bg-app rounded-lg px-4 py-2.5 text-sm focus:outline-none" />
@@ -328,13 +334,13 @@ function ItemEditor({
         <label className="flex items-center gap-2">
           <input type="checkbox" checked={trackOnHand} onChange={(e) => setTrackOnHand(e.target.checked)}
             className="w-4 h-4 accent-[var(--accent)]" />
-          <span className="text-sm text-ink">{ru.admin.catalog.trackOnHand}</span>
+          <span className="text-sm text-ink">{t.admin.catalog.trackOnHand}</span>
         </label>
         {item && (
           <label className="flex items-center gap-2">
             <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)}
               className="w-4 h-4 accent-[var(--accent)]" />
-            <span className="text-sm text-ink">{ru.admin.catalog.active}</span>
+            <span className="text-sm text-ink">{t.admin.catalog.active}</span>
           </label>
         )}
       </div>
@@ -357,6 +363,7 @@ function ItemEditor({
 }
 
 function Modal({ title, children, onClose }: { title: string; children: React.ReactNode; onClose: () => void }) {
+  const { t } = useI18n()
   return (
     <>
       <div className="fixed inset-0 bg-black/50 z-[60]" onClick={onClose} />
@@ -372,6 +379,7 @@ function Modal({ title, children, onClose }: { title: string; children: React.Re
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  const { t } = useI18n()
   return (
     <div>
       <label className="block text-sm text-muted mb-1">{label}</label>
@@ -381,13 +389,14 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 function Actions({ onClose, onSave, disabled }: { onClose: () => void; onSave: () => void; disabled: boolean }) {
+  const { t } = useI18n()
   return (
     <div className="flex gap-3 mt-4">
-      <button onClick={onClose} className="flex-1 bg-app text-ink rounded-lg py-3 font-medium text-sm">{ru.cleaning.cancel}</button>
+      <button onClick={onClose} className="flex-1 bg-app text-ink rounded-lg py-3 font-medium text-sm">{t.cleaning.cancel}</button>
       <button onClick={onSave} disabled={disabled}
         className="flex-1 bg-accent text-white rounded-lg py-3 font-medium text-sm disabled:opacity-40 flex items-center justify-center gap-2">
         <Check className="w-4 h-4" />
-        {ru.admin.catalog.save}
+        {t.admin.catalog.save}
       </button>
     </div>
   )

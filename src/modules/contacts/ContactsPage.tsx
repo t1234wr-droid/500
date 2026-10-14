@@ -1,10 +1,11 @@
 import { useState, useEffect, useMemo } from 'react'
 import { fetchContacts } from '@/modules/contacts/api'
 import type { Contact } from '@/lib/database.types'
-import { ru } from '@/i18n/ru'
+import { useI18n } from '@/i18n'
 import { Phone, MessageCircle, User } from 'lucide-react'
 
 export function ContactsPage() {
+  const { t } = useI18n()
   const [contacts, setContacts] = useState<Contact[]>([])
   const [loading, setLoading] = useState(true)
 
@@ -25,13 +26,13 @@ export function ContactsPage() {
 
   return (
     <div className="px-4 pt-6 pb-28">
-      <h1 className="text-xl font-semibold text-ink mb-4">{ru.contacts.title}</h1>
+      <h1 className="text-xl font-semibold text-ink mb-4">{t.contacts.title}</h1>
       {loading ? (
-        <p className="text-center text-muted mt-8">{ru.app.loading}</p>
+        <p className="text-center text-muted mt-8">{t.app.loading}</p>
       ) : contacts.length === 0 ? (
         <div className="flex flex-col items-center justify-center mt-16 text-muted">
           <Phone className="w-10 h-10 mb-3" />
-          <p className="text-sm">{ru.contacts.noContacts}</p>
+          <p className="text-sm">{t.contacts.noContacts}</p>
         </div>
       ) : (
         <div className="space-y-5">
@@ -53,13 +54,13 @@ export function ContactsPage() {
                     <div className="flex gap-2 ml-12">
                       <a href={`tel:${c.phone_e164}`} className="flex items-center gap-1.5 bg-accent-soft text-accent rounded-lg px-3 py-1.5 text-xs font-medium">
                         <Phone className="w-3.5 h-3.5" />
-                        {ru.contacts.call}
+                        {t.contacts.call}
                       </a>
                       {c.has_whatsapp && (
                         <a href={`https://wa.me/${c.phone_e164.replace('+', '')}`} target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1.5 bg-ok-soft text-ok rounded-lg px-3 py-1.5 text-xs font-medium">
                           <MessageCircle className="w-3.5 h-3.5" />
-                          {ru.contacts.whatsapp}
+                          {t.contacts.whatsapp}
                         </a>
                       )}
                     </div>
