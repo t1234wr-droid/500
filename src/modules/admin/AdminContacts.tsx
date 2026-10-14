@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { fetchAllContacts, createContact, updateContact, deleteContact } from '@/modules/admin/api'
 import type { Contact } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
-import { toast } from '@/lib/toast'
-import { Plus, Trash2, Edit3, X, Check, Phone, MessageCircle } from 'lucide-react'
+import { toast, errorMessage } from '@/lib/toast'
+import { Plus, Trash2, CreditCard as Edit3, X, Check, Phone, MessageCircle } from 'lucide-react'
 
 export function AdminContacts() {
   const [contacts, setContacts] = useState<Contact[]>([])
@@ -62,12 +62,12 @@ export function AdminContacts() {
               }
               toast(ru.admin.adminContacts.save, 'success')
               setEditing(null); setAdding(false); load()
-            } catch (e) { toast(String(e), 'error') }
+            } catch (e) { toast(errorMessage(e), 'error') }
           }}
           onDelete={editing ? async () => {
             if (!confirm(ru.admin.adminContacts.confirmDelete)) return
             try { await deleteContact(editing.id); toast(ru.admin.adminContacts.delete, 'success'); setEditing(null); load() }
-            catch (e) { toast(String(e), 'error') }
+            catch (e) { toast(errorMessage(e), 'error') }
           } : undefined}
         />
       )}

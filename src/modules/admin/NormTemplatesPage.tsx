@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import { fetchWarehouseStock, fetchTemplateNorms, upsertNormRule, deleteNormRule } from '@/modules/admin/api'
 import type { WarehouseStockRow, NormRuleRow, NormType, AptType, BaseUnit } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
-import { toast } from '@/lib/toast'
-import { ArrowLeft, Plus, Trash2, Edit3, X, Check } from 'lucide-react'
+import { toast, errorMessage } from '@/lib/toast'
+import { ArrowLeft, Plus, Trash2, CreditCard as Edit3, X, Check } from 'lucide-react'
 
 const aptTypes: AptType[] = ['studio', '1br', '2br']
 
@@ -81,7 +81,7 @@ export function NormTemplatesPage() {
       setAddingNormType(null)
       reload()
     } catch (e) {
-      const msg = String(e)
+      const msg = errorMessage(e)
       if (msg.toLowerCase().includes('duplicate') || msg.toLowerCase().includes('unique')) {
         toast(ru.admin.normTemplates.duplicate, 'error')
       } else {

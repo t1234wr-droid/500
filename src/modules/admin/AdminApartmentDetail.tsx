@@ -16,9 +16,9 @@ import {
 import { fetchWarehouseStock } from '@/modules/admin/api'
 import type { Apartment, ApartmentGapRow, NormRuleRow, CleaningEventRow, Staff, WarehouseStockRow, IssueMissingResult, NormType } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
-import { formatDateTime, formatQty } from '@/lib/format'
-import { toast } from '@/lib/toast'
-import { ArrowLeft, ClipboardList, History, Plus, Trash2, Edit3, Gift, RotateCcw, X, Check, Loader2, AlertTriangle } from 'lucide-react'
+import { formatDateTime, formatQty, cairoLocalToISO } from '@/lib/format'
+import { toast, errorMessage } from '@/lib/toast'
+import { ArrowLeft, ClipboardList, History, Plus, Trash2, CreditCard as Edit3, Gift, RotateCcw, X, Check, Loader as Loader2, TriangleAlert as AlertTriangle } from 'lucide-react'
 
 type Tab = 'norms' | 'history'
 
@@ -97,7 +97,7 @@ export function AdminApartmentDetail() {
       }
       loadAll()
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     } finally {
       setIssuing(false)
     }
@@ -112,14 +112,14 @@ export function AdminApartmentDetail() {
       setReverseReason('')
       loadAll()
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     }
   }
 
   const handleRecalc = async () => {
     if (!recalcEventId) return
     try {
-      const cleanedAt = recalcDate || null
+      const cleanedAt = recalcDate ? cairoLocalToISO(recalcDate) : null
       const staffIds = recalcStaffIds.length > 0 ? recalcStaffIds : null
       const leadStaffId = staffIds && staffIds.length > 0 ? staffIds[0] : null
       await recalculateCleaning(recalcEventId, cleanedAt, staffIds, leadStaffId)
@@ -129,7 +129,7 @@ export function AdminApartmentDetail() {
       setRecalcStaffIds([])
       loadAll()
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     }
   }
 
@@ -460,7 +460,7 @@ export function AdminApartmentDetail() {
               setAddingNorm(false)
               loadAll()
             } catch (e) {
-              toast(String(e), 'error')
+              toast(errorMessage(e), 'error')
             }
           }}
         />
@@ -518,7 +518,7 @@ function NormEditor({
         <div className="space-y-3">
           <div>
             <label className="block text-sm text-slate-600 mb-1">{ru.incidents.kind}</label>
-            <select value={normType} onChange={(e) => setNormType(e.target.value)} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
+            <select value={normType} onChange={(e) => setNormType(e.target.value as NormType)} className="w-full bg-slate-100 rounded-xl px-4 py-2.5 text-sm focus:outline-none">
               {normTypeOrder.map((nt) => <option key={nt} value={nt}>{normTypeLabels[nt]}</option>)}
             </select>
           </div>

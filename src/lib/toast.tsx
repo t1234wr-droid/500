@@ -30,6 +30,10 @@ export function toast(message: string, kind?: Toast['kind']) {
   useToast.getState().show(message, kind)
 }
 
+export function errorMessage(e: unknown): string {
+  return e instanceof Error ? e.message : String(e)
+}
+
 export function ToastContainer() {
   const toasts = useToast((s) => s.toasts)
   const dismiss = useToast((s) => s.dismiss)

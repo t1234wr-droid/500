@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { ru } from '@/i18n/ru'
-import { toast } from '@/lib/toast'
-import { Plus, Trash2, Eye, EyeOff, Copy, Check, X, Lock, Edit3 } from 'lucide-react'
+import { toast, errorMessage } from '@/lib/toast'
+import { Plus, Trash2, Eye, EyeOff, Copy, Check, X, Lock, CreditCard as Edit3 } from 'lucide-react'
 
 interface AdminUser {
   id: string
@@ -28,7 +28,7 @@ export function UsersPage() {
       if (data?.error) throw new Error(data.error)
       setUsers(data.users ?? [])
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     } finally {
       setLoading(false)
     }
@@ -44,7 +44,7 @@ export function UsersPage() {
       toast(active ? ru.admin.users.inactive : ru.admin.users.active, 'success')
       load()
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     }
   }
 
@@ -57,7 +57,7 @@ export function UsersPage() {
       toast(ru.admin.users.delete, 'success')
       load()
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     }
   }
 
@@ -178,7 +178,7 @@ export function UsersPage() {
                     setRenaming(null)
                     load()
                   } catch (e) {
-                    toast(String(e), 'error')
+                    toast(errorMessage(e), 'error')
                   }
                 }}
                 disabled={!renameValue.trim()}
@@ -248,7 +248,7 @@ function UserCreateForm({ onClose, onCreated }: { onClose: () => void; onCreated
       toast(ru.admin.users.created, 'success')
       onCreated(login, password)
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     } finally {
       setSubmitting(false)
     }

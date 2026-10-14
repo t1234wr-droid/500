@@ -116,7 +116,27 @@ export async function fetchCleaningEvents(apartmentId: number): Promise<Cleaning
     .eq('apartment_id', apartmentId)
     .order('cleaned_at', { ascending: false })
   if (error) throw new Error(error.message)
-  return (data as CleaningEventRow[]) ?? []
+  const rows = (data ?? []) as unknown as Array<{
+    id: string
+    apartment_id: number
+    cleaned_at: string
+    status: CleaningEventRow['status']
+    revision: number
+    note: string | null
+    lead_staff_id: number | null
+    reverse_reason: string | null
+    cleaning_event_staff: Array<{
+      staff_id: number
+      staff: { full_name: string } | { full_name: string }[]
+    }>
+  }>
+  return rows.map((r) => ({
+    ...r,
+    cleaning_event_staff: (r.cleaning_event_staff ?? []).map((e) => ({
+      staff_id: e.staff_id,
+      staff: Array.isArray(e.staff) ? e.staff[0] : e.staff,
+    })),
+  }))
 }
 
 export async function fetchAllStaff(): Promise<Staff[]> {
@@ -179,7 +199,7 @@ export async function issueMissing(apartmentId: number): Promise<IssueMissingRes
   return data as IssueMissingResult
 }
 
-export async function reverseCleaning(eventId: string, reason: string): Promise<unknown> {
+export async function reverseCleaning(eventId: string, reason: string | null): Promise<unknown> {
   const { data, error } = await supabase.rpc('reverse_cleaning', {
     p_event: eventId,
     p_reason: reason,

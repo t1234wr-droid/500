@@ -2,8 +2,8 @@ import { useState, useEffect } from 'react'
 import { fetchAllStaff, createStaff, updateStaff, deleteStaff } from '@/modules/admin/api'
 import type { Staff } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
-import { toast } from '@/lib/toast'
-import { Plus, Trash2, Edit3, X, Check, Phone } from 'lucide-react'
+import { toast, errorMessage } from '@/lib/toast'
+import { Plus, Trash2, CreditCard as Edit3, X, Check, Phone } from 'lucide-react'
 
 export function StaffPage() {
   const [staff, setStaff] = useState<Staff[]>([])
@@ -78,7 +78,7 @@ export function StaffPage() {
               setAdding(false)
               load()
             } catch (e) {
-              toast(String(e), 'error')
+              toast(errorMessage(e), 'error')
             }
           }}
           onDelete={editing ? async () => {
@@ -88,7 +88,7 @@ export function StaffPage() {
               setEditing(null)
               load()
             } catch (e) {
-              toast(String(e), 'error')
+              toast(errorMessage(e), 'error')
             }
           } : undefined}
         />

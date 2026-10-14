@@ -4,8 +4,8 @@ import { fetchWarehouseStock, fetchApartmentsAdmin, fetchAllStaff, postMove } fr
 import type { WarehouseStockRow, Apartment, Staff } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { formatQty } from '@/lib/format'
-import { toast } from '@/lib/toast'
-import { ArrowLeft, Plus, Minus, Trash2, Loader2, Check } from 'lucide-react'
+import { toast, errorMessage } from '@/lib/toast'
+import { ArrowLeft, Plus, Minus, Trash2, Loader as Loader2, Check } from 'lucide-react'
 
 interface MoveOpDef {
   op: string
@@ -110,7 +110,7 @@ export function MoveForm() {
       toast(ru.admin.move.success, 'success')
       navigate('/admin')
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     } finally {
       setPosting(false)
     }

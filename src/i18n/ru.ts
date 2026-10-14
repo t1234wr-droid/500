@@ -201,6 +201,7 @@ export const ru = {
       role: 'Роль',
       phone: 'Телефон',
       active: 'Активен',
+      inactive: 'Неактивен',
       save: 'Сохранить',
       delete: 'Удалить',
       confirmDelete: 'Удалить сотрудника?',

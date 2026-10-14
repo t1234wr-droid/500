@@ -67,3 +67,21 @@ const egpFormatter = new Intl.NumberFormat('ru-RU', { style: 'currency', currenc
 export function formatEGP(amount: number): string {
   return egpFormatter.format(amount)
 }
+
+export function cairoLocalToISO(localStr: string): string | null {
+  if (!localStr) return null
+  const fakeUTC = new Date(localStr + ':00Z')
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: cairoTz,
+    timeZoneName: 'shortOffset',
+  })
+  const parts = fmt.formatToParts(fakeUTC)
+  const tz = parts.find((p) => p.type === 'timeZoneName')?.value ?? 'GMT+2'
+  const m = tz.match(/GMT([+-])(\d+)(?::(\d+))?/)
+  if (!m) return fakeUTC.toISOString()
+  const sign = m[1] === '-' ? -1 : 1
+  const hours = parseInt(m[2], 10)
+  const mins = parseInt(m[3] ?? '0', 10)
+  const offsetMs = sign * (hours * 60 + mins) * 60000
+  return new Date(fakeUTC.getTime() - offsetMs).toISOString()
+}

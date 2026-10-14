@@ -4,8 +4,8 @@ import { fetchApartmentsAdmin } from '@/modules/admin/api'
 import type { Incident, Apartment, IncidentStatus, IncidentKind } from '@/lib/database.types'
 import { ru } from '@/i18n/ru'
 import { formatDateTime } from '@/lib/format'
-import { toast } from '@/lib/toast'
-import { Wrench, Package, AlertCircle, Check, X, Loader2 } from 'lucide-react'
+import { toast, errorMessage } from '@/lib/toast'
+import { Wrench, Package, CircleAlert as AlertCircle, Check, X, Loader as Loader2 } from 'lucide-react'
 
 const statusLabels: Record<IncidentStatus, string> = {
   new: ru.incidents.statusNew,
@@ -63,7 +63,7 @@ export function AdminIncidents() {
       const [inc] = await Promise.all([fetchAllIncidents()])
       setIncidents(inc)
     } catch (e) {
-      toast(String(e), 'error')
+      toast(errorMessage(e), 'error')
     } finally {
       setProcessing(false)
     }
